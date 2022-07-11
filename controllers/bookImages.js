@@ -28,12 +28,12 @@ const addImage = async (req, index) => {
 const getImage = async (req, res) => {
   try {
     const data = await BookImages.findById(req.params.id)
-    res
+    return res
       .status(200)
       .contentType(data.img.contentType)
       .send(new Buffer.from(data.img.data, 'binary'))
   } catch (e) {
-    res.status(500).json({ message: e.message })
+    return res.status(500).json({ message: e.message })
   }
 }
 module.exports = {

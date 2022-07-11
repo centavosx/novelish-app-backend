@@ -35,11 +35,11 @@ const checkUser = async function (req, res, next) {
 const userExist = async function (req, res, next) {
   try {
     if (
-      typeof req.params.email === 'undefined' &&
+      typeof req.query.email === 'undefined' &&
       typeof req.params.password === 'undefined'
     )
       return res.status(500).json({ message: 'Fill up all the fields' })
-    const user = await Users.findOne({ email: req.params.email })
+    const user = await Users.findOne({ email: req.query.email })
     if (!user) {
       return res.status(404).json({ message: "User doesn't exist" })
     }

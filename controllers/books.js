@@ -8,7 +8,7 @@ const getAllBooks = async (req, res) => {
     const books = await Books.find()
     res.json(books)
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    return res.status(500).json({ message: err.message })
   }
 }
 
@@ -16,13 +16,13 @@ const addBook = async (req, res) => {
   try {
     if (
       !isRequired([
-        req.files.length === 2 ? true : undefined,
+        req.files ? (req.files.length === 2 ? true : undefined) : undefined,
         req.body.name,
         req.body.author,
         req.body.desc,
       ])
     )
-      res.status(500).json({ message: 'Please fill up everything' })
+      return res.status(500).json({ message: 'Please fill up everything' })
     const bookImg = await addImage(req, 0)
     const bookBgImg = await addImage(req, 1)
     const books = new Books({
@@ -34,9 +34,9 @@ const addBook = async (req, res) => {
     })
     const newBook = await books.save()
     await new Chapters({ _id: Types.ObjectId(newBook['_id']) }).save()
-    res.status(201).json(newBook)
+    return res.status(201).json(newBook)
   } catch (err) {
-    res.status(400).json({ message: err.message })
+    return res.status(400).json({ message: err.message })
   }
 }
 
@@ -50,9 +50,9 @@ const updateBook = async (req, res) => {
         description: req.body.description,
       }
     )
-    res.json(data)
+    return res.json(data)
   } catch (e) {
-    res.status(400).json({ message: err.message })
+    return res.status(400).json({ message: err.message })
   }
 }
 
