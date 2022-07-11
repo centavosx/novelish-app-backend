@@ -42,14 +42,18 @@ const commentSchema = new mongoose.Schema({
 
 const userSchema = new mongoose.Schema({
   userId: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
-  startReadDate: {
+  date: {
     type: Date,
     required: true,
     default: Date.now,
   },
+})
+
+const tagSchema = new mongoose.Schema({
+  tagName: { type: String, required: true },
 })
 
 const booksSchema = new mongoose.Schema({
@@ -61,7 +65,7 @@ const booksSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  bookBgImg: {
+  bookCoverImg: {
     type: String,
     required: true,
   },
@@ -73,13 +77,29 @@ const booksSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  language: {
+    type: String,
+    required: true,
+  },
+  mainGenre: { type: String, required: true },
+  secondaryGenre: { type: String, required: true },
+  tags: {
+    type: [tagSchema],
+    required: true,
+  },
   comments: { type: [commentSchema], required: false },
   dateCreated: {
     type: Date,
     required: true,
     default: Date.now,
   },
-  readBy: { type: [userSchema], required: false },
+  viewedBy: { type: [userSchema], required: false },
+  likedBy: { type: [userSchema], required: false },
+  lastUpdated: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
 })
 module.exports = { commentSchema }
 module.exports = mongoose.model('Books', booksSchema)

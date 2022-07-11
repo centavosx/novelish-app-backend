@@ -9,10 +9,17 @@
   "author": "centavosx",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.0.1",
+    "body-parser": "^1.20.0",
+    "crypto": "^1.0.1",
     "dotenv": "^16.0.1",
+    "ejs": "^3.1.8",
     "express": "^4.18.1",
+    "express-validator": "^6.14.2",
     "mongoose": "^6.4.3",
-    "nodemon": "^2.0.19"
+    "multer": "^1.4.5-lts.1",
+    "nodemon": "^2.0.19",
+    "validator": "^13.7.0"
   },
   "devDependencies": {
     "prettier": "2.7.1"

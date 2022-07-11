@@ -29,7 +29,10 @@ const chapterSchema = new mongoose.Schema({
   },
 })
 const bookChapterSchema = new mongoose.Schema({
-  bookId: { type: String, required: true },
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
   chapters: { type: [chapterSchema], required: false },
 })
 
