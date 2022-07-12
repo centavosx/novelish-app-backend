@@ -55,12 +55,19 @@ const loggedIn = async (req, res) => {
       password: val.password,
     }
     const accessToken = jwt.sign(newData, process.env.ACCESS_SECRET, {
-      expiresIn: '5s',
+      expiresIn: '60s',
     })
-    const refreshToken = jwt.sign(newData, process.env.REFRESH_SECRET)
+    const refreshToken = jwt.sign(
+      { email: val.email, password: val.password },
+      process.env.REFRESH_SECRET,
+      {
+        expiresIn: '30d',
+      }
+    )
     const expiry = new Date()
     expiry.setDate(expiry.getDate() + 30)
     const newToken = new Token({
+      userId: newData._id,
       tkn: refreshToken,
       expirationDate: expiry,
     })

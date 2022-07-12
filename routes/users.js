@@ -9,7 +9,7 @@ const {
 const { authenticate } = require('../middlewares/authenticate')
 router.get('/login/:password', userExist, loggedIn)
 router.get('/check', authenticate, async (req, res) => {
-  res.json({ message: 'Success', data: req.importantData })
+  res.json({ message: 'Success' })
 })
 router.post('/', [checkEmail, checkUser], addUser)
 
