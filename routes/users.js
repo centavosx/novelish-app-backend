@@ -1,6 +1,11 @@
 const express = require('express')
 const router = express.Router()
-const { addUser, loggedIn } = require('../controllers/users')
+const {
+  addUser,
+  loggedIn,
+  insertProfilePicture,
+} = require('../controllers/users')
+const { uploadImg } = require('../controllers/userImages')
 const {
   checkEmail,
   checkUser,
@@ -8,9 +13,8 @@ const {
 } = require('../middlewares/validateUsers')
 const { authenticate } = require('../middlewares/authenticate')
 router.get('/login/:password', userExist, loggedIn)
-router.get('/check', authenticate, async (req, res) => {
-  res.json({ message: 'Success' })
-})
+router.post('/insertPic/:id', [uploadImg, authenticate], insertProfilePicture)
+
 router.post('/', [checkEmail, checkUser], addUser)
 
 module.exports = router

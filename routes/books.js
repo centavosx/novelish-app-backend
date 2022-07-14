@@ -1,7 +1,15 @@
 const express = require('express')
 const router = express.Router()
-const { getAllBooks, addBook, updateBook } = require('../controllers/books')
+const {
+  getAllBooks,
+  addBook,
+  updateBook,
+  addChapter,
+  unlockChapter,
+  readChapter,
+} = require('../controllers/books')
 const { uploadImg } = require('../controllers/bookImages')
+const { authenticate } = require('../middlewares/authenticate')
 router.get('/', getAllBooks)
 
 // router.get('/getBook/:id', getBook, (req, res) => {
@@ -9,7 +17,10 @@ router.get('/', getAllBooks)
 // })
 
 router.post('/', uploadImg, addBook)
+router.get('/:bookId/:chapterId', authenticate, readChapter)
+router.patch('/:bookId/:chapterId', authenticate, unlockChapter)
 router.patch('/:id', updateBook)
+router.post('/chapter/:id', addChapter)
 
 // router.patch('/updateBook/:id', async (req, res) => {})
 

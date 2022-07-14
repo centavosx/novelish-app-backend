@@ -9,13 +9,13 @@ const storage = multer.diskStorage({
     cb(null, file.originalname)
   },
 })
-const uploadImg = multer({ storage: storage }).array('images', 2)
+const uploadImg = multer({ storage: storage }).single('image')
 
-const addImage = async (req, index) => {
+const addImage = async (req) => {
   const obj = {
     img: {
-      data: fs.readFileSync('./bookFiles/' + req.files[index].filename),
-      contentType: req.files[index].mimetype,
+      data: fs.readFileSync('./bookFiles/' + req.file.filename),
+      contentType: req.file.mimetype,
     },
   }
   const image = new BookImages(obj)

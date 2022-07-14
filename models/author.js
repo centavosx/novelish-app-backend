@@ -35,6 +35,11 @@ const authorSchema = new mongoose.Schema({
     },
     dropDups: true,
   },
+  experience: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
   dateApplied: {
     type: Date,
     required: true,

@@ -61,10 +61,6 @@ const booksSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  bookImg: {
-    type: String,
-    required: true,
-  },
   bookCoverImg: {
     type: String,
     required: true,
@@ -87,6 +83,16 @@ const booksSchema = new mongoose.Schema({
     type: [tagSchema],
     required: true,
   },
+  approval: {
+    type: String,
+    required: true,
+    default: 'review',
+  },
+  publishDate: {
+    type: String,
+    required: true,
+  },
+  status: { type: String, required: true, default: 'ongoing' },
   comments: { type: [commentSchema], required: false },
   dateCreated: {
     type: Date,

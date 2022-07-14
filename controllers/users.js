@@ -1,10 +1,12 @@
 const Users = require('../models/users')
+const UserImages = require('../models/userImages')
 const Token = require('../models/token')
 const bcrypt = require('bcrypt')
 const { addImage } = require('./userImages')
 const { isRequired } = require('./comments')
 const jwt = require('jsonwebtoken')
 const { encryptText, decryptText } = require('../encryption')
+const sha256 = require('crypto-js/sha256')
 const addUser = async (req, res) => {
   try {
     if (
@@ -34,10 +36,24 @@ const addUser = async (req, res) => {
 
 const insertProfilePicture = async (req, res) => {
   try {
-    if (!isRequired([req.file]))
-      return res.status(500).json({ message: 'Please add a file' })
+    if (!isRequired([req.file, req.params.id]))
+      return res
+        .status(500)
+        .json({ message: 'Please add a file', tkn: req.tkn, rtkn: req.rtkn })
+    const userData = await Users.findById(req.params.id)
+    const newFileUrl = await addImage(req)
+    console.log(userData.img)
+    if (typeof userData.img !== 'undefined') {
+      let splitImg = userData.img.split('/')
+      let id = splitImg[splitImg.length - 1]
+      await UserImages.deleteOne({ _id: id })
+    }
+    const d = await Users.updateOne({ id: req.params.id }, { img: newFileUrl })
+    res.json({ ...d, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
-    return res.status(500).json({ message: e.message })
+    return res
+      .status(500)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
   }
 }
 
@@ -55,10 +71,10 @@ const loggedIn = async (req, res) => {
       password: val.password,
     }
     const accessToken = jwt.sign(newData, process.env.ACCESS_SECRET, {
-      expiresIn: '60s',
+      expiresIn: '30s',
     })
     const refreshToken = jwt.sign(
-      { email: val.email, password: val.password },
+      { _id: newData._id, email: newData.email, password: newData.password },
       process.env.REFRESH_SECRET,
       {
         expiresIn: '30d',
@@ -68,7 +84,7 @@ const loggedIn = async (req, res) => {
     expiry.setDate(expiry.getDate() + 30)
     const newToken = new Token({
       userId: newData._id,
-      tkn: refreshToken,
+      tkn: sha256(refreshToken).toString(),
       expirationDate: expiry,
     })
     await newToken.save()
@@ -81,4 +97,4 @@ const loggedIn = async (req, res) => {
   }
 }
 
-module.exports = { addUser, loggedIn }
+module.exports = { addUser, loggedIn, insertProfilePicture }

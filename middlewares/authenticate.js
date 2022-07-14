@@ -6,44 +6,82 @@ const sha256 = require('crypto-js/sha256')
 const bcrypt = require('bcrypt')
 const authenticate = async function (req, res, next) {
   try {
-    console.log(req.query)
     const authHeader = req.headers['authorization']
-    console.log(authHeader)
+    const tknHeader = req.headers['tkn']
     const dataSplit = authHeader.split(' ')
-    if (dataSplit.length < 2)
+    if (dataSplit.length < 2 || typeof tknHeader === 'undefined')
       return res.status(403).json({ message: 'Not authorize' })
     if (dataSplit[0] !== 'Bearer')
       return res.status(403).json({ message: 'Not authorize' })
     const token = decryptText(dataSplit[1])
+    const rToken = decryptText(tknHeader)
     jwt.verify(token, process.env.ACCESS_SECRET, async (err, dataValues) => {
-      if (err)
-        return await validateRefreshToken(req.query.token, req, res, next)
-      if (!('_id' in dataValues))
-        return res.status(500).json({ message: 'Invalid Token' })
-      await generateToken(
-        dataValues,
-        decryptText(req.query.token),
-        req.query.id,
-        req,
-        res
-      )
-      return next()
+      if (err) {
+        if (!err.name === 'TokenExpiredError') {
+          return res.status(403).json({ message: 'error' })
+        } else {
+          const val = await jwt.verify(token, process.env.ACCESS_SECRET, {
+            ignoreExpiration: true,
+          })
+          return await refresh(rToken, val, req, res, next)
+        }
+      }
+      if (typeof dataValues._id !== 'undefined')
+        return await newAccess(
+          {
+            _id: dataValues._id.toString(),
+            verified: dataValues.verified,
+            username: dataValues.username,
+            email: dataValues.email,
+            password: dataValues.password,
+          },
+          rToken,
+          req,
+          res,
+          next
+        )
     })
   } catch (e) {
     return res.status(500).json({ message: e.message })
   }
 }
 
-const generateNewToken = async function (dataValues, token, userid, req, res) {
+const newAccess = async function (data, rtoken, req, res, next) {
+  const user = await Users.findOne({ email: data.email })
+  const isPasswordValid = user.password === data.password
+  if (!isPasswordValid)
+    return res.status(403).json({ message: 'Invalid token' })
+  const newData = {
+    _id: user._id.toString(),
+    verified: user.verified,
+    username: user.username,
+    email: user.email,
+    password: user.password,
+  }
+  const newAccessToken = jwt.sign(newData, process.env.ACCESS_SECRET, {
+    expiresIn: '30s',
+  })
+  req.tkn = encryptText(newAccessToken)
+  req.rtkn = encryptText(rtoken)
+  req.userId = newData._id
+  req.userCoin = user.coin
+  return next()
+}
+
+const generateNewToken = async function (
+  dataValues,
+  token,
+  tokenData,
+  userid,
+  req,
+  res,
+  next
+) {
   try {
     const user = await Users.findOne({ email: dataValues.email })
-    const isPasswordValid = await bcrypt.compare(
-      dataValues.password,
-      user.password
-    )
-
+    const isPasswordValid = user.password === dataValues.password
     if (!isPasswordValid)
-      return res.status(500).json({ message: 'Invalid token' })
+      return res.status(403).json({ message: 'Invalid token' })
     const data = {
       _id: user._id.toString(),
       verified: user.verified,
@@ -51,51 +89,67 @@ const generateNewToken = async function (dataValues, token, userid, req, res) {
       email: user.email,
       password: user.password,
     }
-    const newRefreshToken = jwt.sign(
-      { email: data.email, password: data.password },
-      process.env.ACCESS_SECRET
-    )
-    const newAccessToken = jwt.sign(data, process.env.ACCESS_SECRET, {
-      expiresIn: '60s',
-    })
-    const expiry = new Date()
-    expiry.setDate(expiry.getDate() + 30)
-    try {
-      await Token.deleteOne({
-        userId: userid.replaceAll(' ', '+'),
-        tkn: sha256(token).toString(),
-      })
-    } catch (e) {
-      console.log(e)
+    let today = new Date()
+    today.setDate(today.getDate() + 12)
+    let refreshToken = token
+    if (today >= new Date(tokenData.expirationDate)) {
+      const newRefreshToken = jwt.sign(
+        { email: data.email, password: data.password },
+        process.env.REFRESH_SECRET
+      )
+      const expiry = new Date()
+      expiry.setDate(expiry.getDate() + 30)
+      try {
+        await Token.deleteOne({
+          userId: userid,
+          tkn: sha256(token).toString(),
+        })
+        const newToken = new Token({
+          userId: userid,
+          tkn: sha256(newRefreshToken).toString(),
+          expirationDate: expiry,
+        })
+        await newToken.save()
+        refreshToken = newRefreshToken
+      } catch (e) {
+        console.log(e)
+      }
     }
-    const newToken = new Token({
-      userId: userid.replaceAll(' ', '+'),
-      tkn: sha256(newRefreshToken).toString(),
-      expirationDate: expiry,
+    const newAccessToken = jwt.sign(data, process.env.ACCESS_SECRET, {
+      expiresIn: '30s',
     })
-    await newToken.save()
-    req.accessToken = encryptText(newAccessToken)
-    req.refreshToken = encryptText(newRefreshToken)
+
+    req.tkn = encryptText(newAccessToken)
+    req.rtkn = encryptText(refreshToken)
     req.userId = data._id
+    req.userCoin = user.coin
+    return next()
   } catch (e) {
     return res.status(500).json({ message: e.message })
   }
 }
 
-const validateRefreshToken = async (refreshToken, req, res, next) => {
+const refresh = async function (token, data, req, res, next) {
   try {
-    if (typeof refreshToken === 'undefined')
-      return res.status(500).json({ message: 'Please add token' })
-    const token = decryptText(refreshToken)
-    const tokenExist = await Token.findOne({
-      userId: req.query.id.replaceAll(' ', '+'),
-      tkn: sha256(token).toString(),
-    })
-    if (!tokenExist) return res.status(500).json({ message: 'Wrong token' })
+    console.log('refresj')
     jwt.verify(token, process.env.REFRESH_SECRET, async (err, dataValues) => {
-      if (err) return res.status(403).json({ message: 'Not authorize' })
-      await generateNewToken(dataValues, token, req.query.id, req, res)
-      return next()
+      if (err) return res.status(403).json({ message: 'Invalid token' })
+      if (data._id !== dataValues._id)
+        return res.status(403).json({ message: 'Invalid token' })
+      const tokenExist = await Token.findOne({
+        userId: dataValues._id,
+        tkn: sha256(token).toString(),
+      })
+      if (!tokenExist) return res.status(403).json({ message: 'Invalid token' })
+      return await generateNewToken(
+        dataValues,
+        token,
+        tokenExist,
+        req.params.id,
+        req,
+        res,
+        next
+      )
     })
   } catch (e) {
     return res.status(500).json({ message: e.message })

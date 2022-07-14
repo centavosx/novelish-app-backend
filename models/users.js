@@ -27,7 +27,6 @@ const librarySchema = new mongoose.Schema({
     required: true,
     default: Date.now,
   },
-  chaptersUnlocked: { type: [chapterSchema], required: false },
 })
 
 const userSchema = new mongoose.Schema({
@@ -48,6 +47,11 @@ const userSchema = new mongoose.Schema({
       unique: true,
     },
     dropDups: true,
+  },
+  experience: {
+    type: Number,
+    required: true,
+    default: 0,
   },
   email: {
     type: String,
