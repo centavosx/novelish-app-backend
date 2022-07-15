@@ -1,5 +1,17 @@
 const mongoose = require('mongoose')
 
+const followerSchema = new mongoose.Schema({
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
+  date: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+})
+
 const authorSchema = new mongoose.Schema({
   _id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -25,6 +37,7 @@ const authorSchema = new mongoose.Schema({
   },
   bio: { type: String, required: true },
   totalEarnings: { type: Number, required: true, default: 0 },
+  followers: { type: [followerSchema], required: false },
   email: {
     type: String,
     required: true,

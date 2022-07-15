@@ -17,11 +17,6 @@ const librarySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
-  display: {
-    type: Boolean,
-    required: true,
-    default: true,
-  },
   dateAdded: {
     type: Date,
     required: true,

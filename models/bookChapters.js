@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-const { commentSchema } = require('./books')
 const userSchema = new mongoose.Schema({
   _id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -11,6 +10,50 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   },
 })
+
+const repliesSchema = new mongoose.Schema({
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
+  message: {
+    type: String,
+    default: '',
+  },
+  dateCreated: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+})
+const commentSchema = new mongoose.Schema({
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
+  rating: {
+    type: Number,
+    required: true,
+  },
+  message: {
+    type: String,
+    default: '',
+  },
+  likedBy: {
+    type: [userSchema],
+    required: false,
+  },
+  replies: {
+    type: [repliesSchema],
+    required: false,
+  },
+  dateCreated: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+})
+
 const updateSchema = new mongoose.Schema({
   description: {
     type: String,

@@ -1,8 +1,20 @@
 const mongoose = require('mongoose')
 
+const userSchema = new mongoose.Schema({
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
+  date: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+})
+
 const repliesSchema = new mongoose.Schema({
-  username: {
-    type: String,
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
   message: {
@@ -17,8 +29,8 @@ const repliesSchema = new mongoose.Schema({
 })
 
 const commentSchema = new mongoose.Schema({
-  username: {
-    type: String,
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
   rating: {
@@ -33,19 +45,11 @@ const commentSchema = new mongoose.Schema({
     type: [repliesSchema],
     required: false,
   },
+  likedBy: {
+    type: [userSchema],
+    required: false,
+  },
   dateCreated: {
-    type: Date,
-    required: true,
-    default: Date.now,
-  },
-})
-
-const userSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-  },
-  date: {
     type: Date,
     required: true,
     default: Date.now,

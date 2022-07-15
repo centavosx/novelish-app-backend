@@ -14,7 +14,7 @@ const authenticate = async function (req, res, next) {
     if (dataSplit[0] !== 'Bearer')
       return res.status(403).json({ message: 'Not authorize' })
     const token = decryptText(dataSplit[1])
-    const rToken = decryptText(tknHeader)
+
     jwt.verify(token, process.env.ACCESS_SECRET, async (err, dataValues) => {
       if (err) {
         if (!err.name === 'TokenExpiredError') {
@@ -23,7 +23,7 @@ const authenticate = async function (req, res, next) {
           const val = await jwt.verify(token, process.env.ACCESS_SECRET, {
             ignoreExpiration: true,
           })
-          return await refresh(rToken, val, req, res, next)
+          return await refresh(tknHeader, val, req, res, next)
         }
       }
       if (typeof dataValues._id !== 'undefined')
@@ -35,7 +35,7 @@ const authenticate = async function (req, res, next) {
             email: dataValues.email,
             password: dataValues.password,
           },
-          rToken,
+          tknHeader,
           req,
           res,
           next
@@ -62,7 +62,7 @@ const newAccess = async function (data, rtoken, req, res, next) {
     expiresIn: '30s',
   })
   req.tkn = encryptText(newAccessToken)
-  req.rtkn = encryptText(rtoken)
+  req.rtkn = rtoken
   req.userId = newData._id
   req.userCoin = user.coin
   return next()
@@ -110,7 +110,7 @@ const generateNewToken = async function (
           expirationDate: expiry,
         })
         await newToken.save()
-        refreshToken = newRefreshToken
+        refreshToken = encryptText(newRefreshToken)
       } catch (e) {
         console.log(e)
       }
@@ -120,7 +120,7 @@ const generateNewToken = async function (
     })
 
     req.tkn = encryptText(newAccessToken)
-    req.rtkn = encryptText(refreshToken)
+    req.rtkn = refreshToken
     req.userId = data._id
     req.userCoin = user.coin
     return next()
@@ -129,9 +129,9 @@ const generateNewToken = async function (
   }
 }
 
-const refresh = async function (token, data, req, res, next) {
+const refresh = async function (rtoken, data, req, res, next) {
   try {
-    console.log('refresj')
+    const token = decryptText(rtoken)
     jwt.verify(token, process.env.REFRESH_SECRET, async (err, dataValues) => {
       if (err) return res.status(403).json({ message: 'Invalid token' })
       if (data._id !== dataValues._id)
@@ -143,7 +143,7 @@ const refresh = async function (token, data, req, res, next) {
       if (!tokenExist) return res.status(403).json({ message: 'Invalid token' })
       return await generateNewToken(
         dataValues,
-        token,
+        rtoken,
         tokenExist,
         req.params.id,
         req,

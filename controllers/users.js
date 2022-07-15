@@ -1,5 +1,6 @@
 const Users = require('../models/users')
 const UserImages = require('../models/userImages')
+const Books = require('../models/books')
 const Token = require('../models/token')
 const bcrypt = require('bcrypt')
 const { addImage } = require('./userImages')
@@ -36,19 +37,18 @@ const addUser = async (req, res) => {
 
 const insertProfilePicture = async (req, res) => {
   try {
-    if (!isRequired([req.file, req.params.id]))
+    if (!isRequired([req.file]))
       return res
         .status(500)
         .json({ message: 'Please add a file', tkn: req.tkn, rtkn: req.rtkn })
-    const userData = await Users.findById(req.params.id)
+    const userData = await Users.findById(req.userId)
     const newFileUrl = await addImage(req)
-    console.log(userData.img)
     if (typeof userData.img !== 'undefined') {
       let splitImg = userData.img.split('/')
       let id = splitImg[splitImg.length - 1]
       await UserImages.deleteOne({ _id: id })
     }
-    const d = await Users.updateOne({ id: req.params.id }, { img: newFileUrl })
+    const d = await Users.updateOne({ _id: req.userId }, { img: newFileUrl })
     res.json({ ...d, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
     return res
@@ -97,4 +97,67 @@ const loggedIn = async (req, res) => {
   }
 }
 
-module.exports = { addUser, loggedIn, insertProfilePicture }
+const addBookToLibrary = (req, res) => {
+  try {
+    Users.findOne({ _id: req.userId }, async (err, val) => {
+      if (err)
+        return res
+          .status(500)
+          .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
+      let book = val.libraries.id(req.params.bookId)
+      if (book !== null)
+        return res.json({
+          message: 'Already in library',
+          tkn: req.tkn,
+          rtkn: req.rtkn,
+        })
+      val.libraries.push({ _id: req.params.bookId })
+      await val.save()
+      return res.json({ user: val, tkn: req.tkn, rtkn: req.rtkn })
+    })
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
+const getUserLibraries = (req, res) => {
+  try {
+    Users.findOne(
+      { _id: req.userId },
+      { 'libraries._id': 1 },
+      async (e, val) => {
+        if (e)
+          return res
+            .status(500)
+            .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+
+        Books.find(
+          { $or: val.libraries },
+          { _id: 1, bookName: 1, bookCoverImg: 1 },
+          function (err, book) {
+            if (e) {
+              return res
+                .status(500)
+                .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+            }
+            return res.json({ book, tkn: req.tkn, rtkn: req.rtkn })
+          }
+        )
+      }
+    )
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
+module.exports = {
+  addUser,
+  loggedIn,
+  insertProfilePicture,
+  addBookToLibrary,
+  getUserLibraries,
+}
