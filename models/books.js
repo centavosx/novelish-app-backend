@@ -59,7 +59,57 @@ const commentSchema = new mongoose.Schema({
 const tagSchema = new mongoose.Schema({
   tagName: { type: String, required: true },
 })
-
+const updateSchema = new mongoose.Schema({
+  description: {
+    type: String,
+    required: true,
+  },
+  date: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+})
+const chapterSchema = new mongoose.Schema({
+  chapterNumber: {
+    type: Number,
+    required: true,
+  },
+  chapterName: {
+    type: String,
+    required: true,
+  },
+  chapterStory: {
+    type: String,
+    required: true,
+  },
+  coinPrice: {
+    type: Number,
+    required: true,
+  },
+  approval: {
+    type: String,
+    required: true,
+    default: 'review',
+  },
+  publishDate: {
+    type: Date,
+    required: true,
+  },
+  isPublished: {
+    type: Boolean,
+    required: true,
+  },
+  readBy: { type: [userSchema], required: false },
+  unlockedBy: { type: [userSchema], required: false },
+  comments: { type: [commentSchema], required: false },
+  dateCreated: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+  updateHistory: { type: [updateSchema], required: false },
+})
 const booksSchema = new mongoose.Schema({
   bookName: {
     type: String,
@@ -83,6 +133,10 @@ const booksSchema = new mongoose.Schema({
   },
   mainGenre: { type: String, required: true },
   secondaryGenre: { type: String, required: true },
+  chapters: {
+    type: [chapterSchema],
+    required: false,
+  },
   tags: {
     type: [tagSchema],
     required: true,

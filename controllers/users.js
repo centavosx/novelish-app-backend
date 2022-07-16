@@ -7,7 +7,47 @@ const { addImage } = require('./userImages')
 const { isRequired } = require('./comments')
 const jwt = require('jsonwebtoken')
 const { encryptText, decryptText } = require('../encryption')
+const { sendEmail } = require('../mail')
 const sha256 = require('crypto-js/sha256')
+const generate = () => {
+  const digits = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let otp = ''
+  for (let i = 0; i < 10; i++) {
+    otp += digits[Math.round(Math.random() * 10)]
+  }
+  return otp
+}
+const newCode = async (req, res) => {
+  try {
+    const user = await Users.findOne({ _id: req.userId })
+    const code = generate()
+    if (
+      await sendEmail(
+        user.email,
+        'New Verification Code',
+        `<body>
+        <h1>Good day ${user.name}</h1>
+        <br/>
+        <h4>Here is your verification code 
+          <b><i>${code}</i></b>
+        </h4>
+        <br/>
+        <h6>This code will expire in 5 minutes</h6>
+      </body>`
+      )
+    ) {
+      user.verification.otp = code
+      user.verification.exp = new Date(
+        new Date().setMinutes(new Date().getMinutes() + 5)
+      )
+      await user.save()
+      return res.json({ sent: true })
+    }
+    return res.json({ sent: false })
+  } catch (e) {
+    return res.status(500).json({ message: e.message })
+  }
+}
 const addUser = async (req, res) => {
   try {
     if (
@@ -21,15 +61,34 @@ const addUser = async (req, res) => {
       return res.status(500).json({ message: 'Please fill up all the blanks' })
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(req.body.password, salt)
-    const user = new Users({
-      name: req.body.name,
-      username: req.body.username,
-      email: req.body.email,
-      password: hashedPassword,
-    })
-    const newUser = await user.save()
-    delete newUser['password']
-    return res.json(newUser)
+    const code = generate()
+    if (
+      await sendEmail(
+        req.body.email,
+        'Verification Code',
+        `<body>
+        <h1>Good day ${req.body.name}</h1>
+        <br/>
+        <h4>Here is your verification code 
+          <b><i>${code}</i></b>
+        </h4>
+        <br/>
+        <h6>This code will expire in 5 minutes</h6>
+      </body>`
+      )
+    ) {
+      const user = new Users({
+        name: req.body.name,
+        username: req.body.username,
+        email: req.body.email,
+        password: hashedPassword,
+        verification: { otp: code },
+      })
+      const newUser = await user.save()
+      delete newUser['password']
+      return res.json(newUser)
+    }
+    return res.json({ message: 'Failed' })
   } catch (e) {
     return res.status(500).json({ message: e.message })
   }
@@ -70,26 +129,34 @@ const loggedIn = async (req, res) => {
       email: val.email,
       password: val.password,
     }
-    const accessToken = jwt.sign(newData, process.env.ACCESS_SECRET, {
-      expiresIn: '30s',
-    })
-    const refreshToken = jwt.sign(
-      { _id: newData._id, email: newData.email, password: newData.password },
-      process.env.REFRESH_SECRET,
+    const accessToken = jwt.sign(
+      val.verified ? newData : { email: val.email, password: val.password },
+      process.env.ACCESS_SECRET,
       {
-        expiresIn: '30d',
+        expiresIn: val.verified ? '30s' : '20m',
       }
     )
-    const expiry = new Date()
-    expiry.setDate(expiry.getDate() + 30)
-    const newToken = new Token({
-      userId: newData._id,
-      tkn: sha256(refreshToken).toString(),
-      expirationDate: expiry,
-    })
-    await newToken.save()
+    if (val.verified) {
+      const refreshToken = jwt.sign(
+        { _id: newData._id, email: newData.email, password: newData.password },
+        process.env.REFRESH_SECRET,
+        {
+          expiresIn: '30d',
+        }
+      )
+      const expiry = new Date()
+      expiry.setDate(expiry.getDate() + 30)
+      const newToken = new Token({
+        userId: newData._id,
+        tkn: sha256(refreshToken).toString(),
+        expirationDate: expiry,
+      })
+      await newToken.save()
+      newData['rtkn'] = encryptText(refreshToken)
+    }
     newData['tkn'] = encryptText(accessToken)
-    newData['rtkn'] = encryptText(refreshToken)
+    newData['loggedin'] = val.verified
+    delete newData['verified']
     delete newData['password']
     return res.json(newData)
   } catch (e) {
@@ -160,4 +227,5 @@ module.exports = {
   insertProfilePicture,
   addBookToLibrary,
   getUserLibraries,
+  newCode,
 }

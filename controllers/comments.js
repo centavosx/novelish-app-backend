@@ -1,5 +1,5 @@
 const Books = require('../models/books')
-const Chapters = require('../models/bookChapters')
+
 const Users = require('../models/users')
 const { Types } = require('mongoose')
 
@@ -60,35 +60,30 @@ const getComments = async (req, res) => {
 }
 const getReplies = async (req, res) => {
   try {
-    Books.findById(req.params.bookId, async (err, value) => {
-      if (err)
-        return res
-          .status(500)
-          .json({ message: err.toString(), tkn: req.tkn, rtkn: req.rtkn })
-      const val = value.comments.id(req.params.id)
-      let userData = {}
-      const user = await Users.findOne({ _id: req.params.id })
-      userData[req.params.id] = user
-      let newComment = await getCommentsWithUserData(
-        userData,
-        val.replies,
-        req.userId
-      )
-      res.json({
-        _id: val._id,
-        user: userData[req.params.id].username,
-        img: userData[req.params.id].img,
-        rating: val.rating,
-        message: val.message,
-        totalLikes: val.likedBy?.length ?? 0,
-        liked: val.likeBy?.find((d) => d._id.toString() === req.userId)
-          ? true
-          : false ?? false,
-        replies: newComment,
-        dateCreated: val.dateCreated,
-        tkn: req.tkn,
-        rtkn: req.rtkn,
-      })
+    const value = await Books.findById(req.params.bookId)
+    const val = value.comments.id(req.params.id)
+    let userData = {}
+    const user = await Users.findOne({ _id: req.params.id })
+    userData[req.params.id] = user
+    let newComment = await getCommentsWithUserData(
+      userData,
+      val.replies,
+      req.userId
+    )
+    res.json({
+      _id: val._id,
+      user: userData[req.params.id].username,
+      img: userData[req.params.id].img,
+      rating: val.rating,
+      message: val.message,
+      totalLikes: val.likedBy?.length ?? 0,
+      liked: val.likeBy?.find((d) => d._id.toString() === req.userId)
+        ? true
+        : false ?? false,
+      replies: newComment,
+      dateCreated: val.dateCreated,
+      tkn: req.tkn,
+      rtkn: req.rtkn,
     })
   } catch (e) {
     res.status(400).json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
@@ -104,36 +99,28 @@ const addComment = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    Books.findOne(
-      {
-        _id: req.params.id,
-      },
-      async (err, val) => {
-        if (err)
-          return res
-            .status(403)
-            .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
-        if (val === null)
-          return res.status(403).json({
-            message: 'Book or chapter not found',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        if (val.comments.id(req.userId) !== null)
-          return res.status(403).json({
-            message: 'You already commented in this story',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        val.comments.push({
-          _id: Types.ObjectId(req.userId),
-          rating: data.rating,
-          message: data.message,
-        })
-        await val.save()
-        res.json({ added: true, tkn: req.tkn, rtkn: req.rtkn })
-      }
-    )
+    const val = await Books.findOne({
+      _id: req.params.id,
+    })
+    if (val === null)
+      return res.status(403).json({
+        message: 'Book or chapter not found',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    if (val.comments.id(req.userId) !== null)
+      return res.status(403).json({
+        message: 'You already commented in this story',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    val.comments.push({
+      _id: Types.ObjectId(req.userId),
+      rating: data.rating,
+      message: data.message,
+    })
+    await val.save()
+    res.json({ added: true, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
     res.status(500).json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
   }
@@ -146,26 +133,21 @@ const addReply = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    Books.findById(req.params.bookId, (err, value) => {
+    const value = await Books.findById(req.params.bookId)
+    let comments = value.comments.id(req.params.id)
+    comments.replies.push({
+      _id: Types.ObjectId(req.userId),
+      message: req.body.message,
+    })
+    value.save((err) => {
       if (err)
         return res
           .status(500)
           .json({ message: err.toString(), tkn: req.tkn, rtkn: req.rtkn })
-      let comments = value.comments.id(req.params.id)
-      comments.replies.push({
-        _id: Types.ObjectId(req.userId),
-        message: req.body.message,
-      })
-      value.save((err) => {
-        if (err)
-          return res
-            .status(500)
-            .json({ message: err.toString(), tkn: req.tkn, rtkn: req.rtkn })
-        return res.json({
-          added: true,
-          tkn: req.tkn,
-          rtkn: req.rtkn,
-        })
+      return res.json({
+        added: true,
+        tkn: req.tkn,
+        rtkn: req.rtkn,
       })
     })
   } catch (e) {
@@ -183,7 +165,7 @@ const getChapterComments = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    Chapters.findOne(
+    const val = await Books.findOne(
       {
         _id: req.params.bookId,
       },
@@ -193,39 +175,34 @@ const getChapterComments = async (req, res) => {
             _id: req.params.chapterId,
           },
         },
-      },
-      async (err, val) => {
-        if (err)
-          return res
-            .status(403)
-            .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
-        if (val.chapters.length < 1)
-          return res.status(403).json({
-            message: 'Book or chapter not found',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        if (val.chapters[0].unlockedBy.id(req.userId) === null)
-          return res.status(403).json({
-            message: 'Not owned by this user',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-
-        let userData = {}
-        let newComment = await getCommentsWithUserData(
-          userData,
-          val.chapters[0].comments,
-          req.userId
-        )
-
-        return res.json({
-          comments: newComment,
-          tkn: req.tkn,
-          rtkn: req.rtkn,
-        })
       }
     )
+
+    if (val.chapters.length < 1)
+      return res.status(403).json({
+        message: 'Book or chapter not found',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    if (val.chapters[0].unlockedBy.id(req.userId) === null)
+      return res.status(403).json({
+        message: 'Not owned by this user',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+
+    let userData = {}
+    let newComment = await getCommentsWithUserData(
+      userData,
+      val.chapters[0].comments,
+      req.userId
+    )
+
+    return res.json({
+      comments: newComment,
+      tkn: req.tkn,
+      rtkn: req.rtkn,
+    })
   } catch (e) {
     return res
       .status(400)
@@ -247,7 +224,7 @@ const addChapterComments = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    Chapters.findOne(
+    const val = await Books.findOne(
       {
         _id: req.params.bookId,
       },
@@ -257,43 +234,39 @@ const addChapterComments = async (req, res) => {
             _id: req.params.chapterId,
           },
         },
-      },
-      async (err, val) => {
-        if (err)
-          return res
-            .status(403)
-            .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
-        if (val.chapters.length < 1)
-          return res.status(403).json({
-            message: 'Book or chapter not found',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        if (val.chapters[0].unlockedBy.id(req.userId) === null)
-          return res.status(403).json({
-            message: 'Not owned by this user',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        if (val.chapters[0].comments.id(req.userId) === null)
-          return res.status(403).json({
-            message: 'You already commented in this book',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        val.chapters[0].comments.push({
-          _id: Types.ObjectId(req.userId),
-          message: req.body.message,
-          rating: req.body.rating,
-        })
-        await val.save()
-        return res.json({
-          added: true,
-          tkn: req.tkn,
-          rtkn: req.rtkn,
-        })
       }
     )
+
+    if (val.chapters.length < 1)
+      return res.status(403).json({
+        message: 'Book or chapter not found',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    if (val.chapters[0].unlockedBy.id(req.userId) === null)
+      return res.status(403).json({
+        message: 'Not owned by this user',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+
+    if (val.chapters[0].comments.id(req.userId) !== null)
+      return res.status(403).json({
+        message: 'You already commented in this book',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    val.chapters[0].comments.push({
+      _id: Types.ObjectId(req.userId),
+      message: req.body.message,
+      rating: req.body.rating,
+    })
+    await val.save()
+    return res.json({
+      added: true,
+      tkn: req.tkn,
+      rtkn: req.rtkn,
+    })
   } catch (e) {
     return res
       .status(400)
@@ -317,7 +290,7 @@ const addChapterCommentReply = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    Chapters.findOne(
+    const val = await Books.findOne(
       {
         _id: req.params.bookId,
       },
@@ -327,43 +300,39 @@ const addChapterCommentReply = async (req, res) => {
             _id: req.params.chapterId,
           },
         },
-      },
-      async (err, val) => {
-        if (err)
-          return res
-            .status(403)
-            .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
-        if (val.chapters.length < 1)
-          return res.status(403).json({
-            message: 'Book or chapter not found',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        if (val.chapters[0].unlockedBy.id(req.userId) === null)
-          return res.status(403).json({
-            message: 'Not owned by this user',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        let getComment = val.chapters[0].comments.id(req.params.commentId)
-        if (getComment === null)
-          return res.status(403).json({
-            message: 'Comment not found',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        getComment.replies.push({
-          _id: Types.ObjectId(req.userId),
-          message: req.body.message,
-          rating: req.body.rating,
-        })
-        await val.save()
-        return res.json({
-          tkn: req.tkn,
-          rtkn: req.rtkn,
-        })
       }
     )
+
+    if (val.chapters.length < 1)
+      return res.status(403).json({
+        message: 'Book or chapter not found',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    if (val.chapters[0].unlockedBy.id(req.userId) === null)
+      return res.status(403).json({
+        message: 'Not owned by this user',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    let getComment = val.chapters[0].comments.id(req.params.commentId)
+    if (getComment === null)
+      return res.status(403).json({
+        message: 'Comment not found',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    getComment.replies.push({
+      _id: Types.ObjectId(req.userId),
+      message: req.body.message,
+      rating: req.body.rating,
+    })
+    await val.save()
+    return res.json({
+      added: true,
+      tkn: req.tkn,
+      rtkn: req.rtkn,
+    })
   } catch (e) {
     return res
       .status(400)
@@ -385,7 +354,7 @@ const getChapterCommentReply = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    Chapters.findOne(
+    const val = await Books.findOne(
       {
         _id: req.params.bookId,
       },
@@ -395,57 +364,52 @@ const getChapterCommentReply = async (req, res) => {
             _id: req.params.chapterId,
           },
         },
-      },
-      async (err, val) => {
-        if (err)
-          return res
-            .status(403)
-            .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
-        if (val.chapters.length < 1)
-          return res.status(403).json({
-            message: 'Book or chapter not found',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        if (val.chapters[0].unlockedBy.id(req.userId) === null)
-          return res.status(403).json({
-            message: 'Not owned by this user',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        let getComment = val.chapters[0].comments.id(req.params.commentId)
-        if (getComment === null)
-          return res.status(403).json({
-            message: 'Comment not found',
-            tkn: req.tkn,
-            rtkn: req.rtkn,
-          })
-        let userData = {}
-        const user = await Users.findOne({ _id: req.params.commentId })
-        userData[req.params.commentId] = user
-        let newComment = await getCommentsWithUserData(
-          userData,
-          getComment.replies,
-          false
-        )
-
-        return res.json({
-          _id: getComment._id,
-          user: userData[req.params.commentId].username,
-          img: userData[req.params.commentId].img,
-          rating: getComment.rating,
-          message: getComment.message,
-          totalLikes: getComment.likedBy?.length ?? 0,
-          liked: getComment.likeBy?.find((d) => d._id.toString() === req.userId)
-            ? true
-            : false ?? false,
-          replies: newComment,
-          dateCreated: getComment.dateCreated,
-          tkn: req.tkn,
-          rtkn: req.rtkn,
-        })
       }
     )
+
+    if (val.chapters.length < 1)
+      return res.status(403).json({
+        message: 'Book or chapter not found',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    if (val.chapters[0].unlockedBy.id(req.userId) === null)
+      return res.status(403).json({
+        message: 'Not owned by this user',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    let getComment = val.chapters[0].comments.id(req.params.commentId)
+    if (getComment === null)
+      return res.status(403).json({
+        message: 'Comment not found',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    let userData = {}
+    const user = await Users.findOne({ _id: req.params.commentId })
+    userData[req.params.commentId] = user
+    let newComment = await getCommentsWithUserData(
+      userData,
+      getComment.replies,
+      false
+    )
+
+    return res.json({
+      _id: getComment._id,
+      user: userData[req.params.commentId].username,
+      img: userData[req.params.commentId].img,
+      rating: getComment.rating,
+      message: getComment.message,
+      totalLikes: getComment.likedBy?.length ?? 0,
+      liked: getComment.likeBy?.find((d) => d._id.toString() === req.userId)
+        ? true
+        : false ?? false,
+      replies: newComment,
+      dateCreated: getComment.dateCreated,
+      tkn: req.tkn,
+      rtkn: req.rtkn,
+    })
   } catch (e) {
     return res
       .status(400)

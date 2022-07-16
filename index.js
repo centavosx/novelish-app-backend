@@ -1,6 +1,8 @@
 const express = require('express')
 const app = express()
 
+const { decryptText } = require('./encryption')
+
 const mongoose = require('mongoose')
 const booksRouter = require('./routes/books')
 const commentsRouter = require('./routes/comments')

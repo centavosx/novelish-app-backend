@@ -4,6 +4,93 @@ const Token = require('../models/token')
 const Users = require('../models/users')
 const sha256 = require('crypto-js/sha256')
 const bcrypt = require('bcrypt')
+const verifyToSend = async function (req, res, next) {
+  try {
+    const authHeader = req.headers['authorization']
+    const dataSplit = authHeader.split(' ')
+    if (dataSplit.length < 2)
+      return res.status(403).json({ message: 'Not authorize' })
+    if (dataSplit[0] !== 'Bearer')
+      return res.status(403).json({ message: 'Not authorize' })
+    const token = decryptText(dataSplit[1])
+    jwt.verify(token, process.env.ACCESS_SECRET, async (err, data) => {
+      if (err) return res.status(500).json({ message: err.message })
+      const user = await Users.findOne({ email: data.email })
+      const isPasswordValid = user.password === data.password
+      if (!isPasswordValid)
+        return res.status(403).json({ message: 'Invalid token' })
+      req.userId = user._id.toString()
+      return next()
+    })
+  } catch (e) {
+    return res.status(500).json({ message: e.message })
+  }
+}
+
+const verification = async function (req, res, next) {
+  try {
+    const authHeader = req.headers['authorization']
+    const dataSplit = authHeader.split(' ')
+    if (dataSplit.length < 2)
+      return res.status(403).json({ message: 'Not authorize' })
+    if (dataSplit[0] !== 'Bearer')
+      return res.status(403).json({ message: 'Not authorize' })
+    const token = decryptText(dataSplit[1])
+    jwt.verify(token, process.env.ACCESS_SECRET, async (err, data) => {
+      if (err) return res.status(500).json({ message: err.message })
+      const user = await Users.findOne({ email: data.email })
+      const isPasswordValid = user.password === data.password
+      if (!isPasswordValid)
+        return res.status(403).json({ message: 'Invalid token' })
+      if (user.verification.otp !== req.params.otp)
+        return res.status(403).json({ message: 'Invalid OTP' })
+      if (new Date() >= new Date(user.verification.exp))
+        return res.status(403).json({ message: 'OTP Code expired' })
+      user.verification = undefined
+      user.verified = true
+      await user.save()
+      const newData = {
+        _id: user._id.toString(),
+        verified: user.verified,
+        username: user.username,
+        email: user.email,
+        password: user.password,
+      }
+      const accessToken = jwt.sign(newData, process.env.ACCESS_SECRET, {
+        expiresIn: '30s',
+      })
+      const refreshToken = jwt.sign(
+        {
+          _id: newData._id,
+          email: newData.email,
+          password: newData.password,
+        },
+        process.env.REFRESH_SECRET,
+        {
+          expiresIn: '30d',
+        }
+      )
+      const expiry = new Date()
+      expiry.setDate(expiry.getDate() + 30)
+      const newToken = new Token({
+        userId: newData._id,
+        tkn: sha256(refreshToken).toString(),
+        expirationDate: expiry,
+      })
+      await newToken.save()
+      newData['rtkn'] = encryptText(refreshToken)
+      newData['tkn'] = encryptText(accessToken)
+      newData['loggedin'] = user.verified
+      delete newData['verified']
+      delete newData['password']
+      req.userData = newData
+      return next()
+    })
+  } catch (e) {
+    return res.status(500).json({ message: e.message })
+  }
+}
+
 const authenticate = async function (req, res, next) {
   try {
     const authHeader = req.headers['authorization']
@@ -64,7 +151,10 @@ const newAccess = async function (data, rtoken, req, res, next) {
   req.tkn = encryptText(newAccessToken)
   req.rtkn = rtoken
   req.userId = newData._id
+  req.userExp = user.experience
   req.userCoin = user.coin
+  req.verified = user.verified
+  req.verification = user.verification
   return next()
 }
 
@@ -122,7 +212,10 @@ const generateNewToken = async function (
     req.tkn = encryptText(newAccessToken)
     req.rtkn = refreshToken
     req.userId = data._id
+    req.userExp = user.experience
     req.userCoin = user.coin
+    req.verified = user.verified
+    req.verification = user.verification
     return next()
   } catch (e) {
     return res.status(500).json({ message: e.message })
@@ -158,4 +251,6 @@ const refresh = async function (rtoken, data, req, res, next) {
 
 module.exports = {
   authenticate,
+  verification,
+  verifyToSend,
 }

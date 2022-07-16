@@ -1,17 +1,5 @@
 const mongoose = require('mongoose')
 
-const chapterSchema = new mongoose.Schema({
-  _id: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-  },
-  coin: {
-    type: Number,
-    required: true,
-  },
-  dateAdded: { type: Date, required: true, default: Date.now },
-})
-
 const librarySchema = new mongoose.Schema({
   _id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -23,7 +11,17 @@ const librarySchema = new mongoose.Schema({
     default: Date.now,
   },
 })
-
+const otpSchema = new mongoose.Schema({
+  otp: {
+    type: String,
+    required: true,
+  },
+  exp: {
+    type: Date,
+    required: true,
+    default: new Date(new Date().setMinutes(new Date().getMinutes() + 5)),
+  },
+})
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -84,6 +82,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     required: true,
     default: false,
+  },
+  verification: {
+    type: otpSchema,
+    required: false,
   },
 })
 
