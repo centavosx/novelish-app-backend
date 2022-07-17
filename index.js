@@ -10,10 +10,11 @@ const imageRouter = require('./routes/images')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const userRouter = require('./routes/users')
+const path = require('path')
 require('dotenv').config()
 mongoose.connect(process.env.DATABASE_URL)
 const db = mongoose.connection
-
+app.use(express.static(path.join(__dirname, '..', 'public')))
 db.on('error', (error) => console.log(error))
 db.once('open', () => console.log('Connected'))
 
