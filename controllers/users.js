@@ -86,7 +86,7 @@ const addUser = async (req, res) => {
       })
       const newUser = await user.save()
       delete newUser['password']
-      return res.json(newUser)
+      return res.json({ registered: true })
     }
     return res.json({ message: 'Failed' })
   } catch (e) {
@@ -172,15 +172,11 @@ const addBookToLibrary = (req, res) => {
           .status(500)
           .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
       let book = val.libraries.id(req.params.bookId)
-      if (book !== null)
-        return res.json({
-          message: 'Already in library',
-          tkn: req.tkn,
-          rtkn: req.rtkn,
-        })
-      val.libraries.push({ _id: req.params.bookId })
+      if (book !== null) await book.remove()
+      else val.libraries.push({ _id: req.params.bookId })
       await val.save()
-      return res.json({ user: val, tkn: req.tkn, rtkn: req.rtkn })
+
+      return res.json({ updated: true, tkn: req.tkn, rtkn: req.rtkn })
     })
   } catch (e) {
     return res
@@ -189,32 +185,37 @@ const addBookToLibrary = (req, res) => {
   }
 }
 
-const getUserLibraries = (req, res) => {
+const getUserLibraries = async (req, res) => {
   try {
-    Users.findOne(
-      { _id: req.userId },
-      { 'libraries._id': 1 },
-      async (e, val) => {
-        if (e)
-          return res
-            .status(500)
-            .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
-
-        Books.find(
-          { $or: val.libraries },
-          { _id: 1, bookName: 1, bookCoverImg: 1 },
-          function (err, book) {
-            if (e) {
-              return res
-                .status(500)
-                .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
-            }
-            return res.json({ book, tkn: req.tkn, rtkn: req.rtkn })
-          }
-        )
-      }
+    const val = await Users.findOne({ _id: req.userId }, { 'libraries._id': 1 })
+    const book = await Books.find(
+      { $or: val.libraries },
+      { _id: 1, bookName: 1, bookCoverImg: 1 }
     )
+    return res.json({ book, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
+    return res
+      .status(500)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
+const deleteUserLibraries = async (req, res) => {
+  try {
+    if (!isRequired([req.body.data]))
+      return res.status(500).json({
+        message: 'Fill up all the blanks',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    const val = await Users.findOne({ _id: req.userId })
+    for (let x of req.body.data) {
+      await val.libraries.id(x).remove()
+    }
+    val.save()
+    return res.json({ removed: true, tkn: req.tkn, rtkn: req.rtkn })
+  } catch (e) {
+    console.log(e)
     return res
       .status(500)
       .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
@@ -228,4 +229,5 @@ module.exports = {
   addBookToLibrary,
   getUserLibraries,
   newCode,
+  deleteUserLibraries,
 }

@@ -35,6 +35,8 @@ const verification = async function (req, res, next) {
       return res.status(403).json({ message: 'Not authorize' })
     if (dataSplit[0] !== 'Bearer')
       return res.status(403).json({ message: 'Not authorize' })
+    if (dataSplit[1].length < 1)
+      return res.status(500).json({ message: 'Token not provided' })
     const token = decryptText(dataSplit[1])
     jwt.verify(token, process.env.ACCESS_SECRET, async (err, data) => {
       if (err) return res.status(500).json({ message: err.message })
@@ -48,6 +50,7 @@ const verification = async function (req, res, next) {
         return res.status(403).json({ message: 'OTP Code expired' })
       user.verification = undefined
       user.verified = true
+      user.dateVerified = new Date()
       await user.save()
       const newData = {
         _id: user._id.toString(),
@@ -95,6 +98,7 @@ const authenticate = async function (req, res, next) {
   try {
     const authHeader = req.headers['authorization']
     const tknHeader = req.headers['tkn']
+
     const dataSplit = authHeader.split(' ')
     if (dataSplit.length < 2 || typeof tknHeader === 'undefined')
       return res.status(403).json({ message: 'Not authorize' })

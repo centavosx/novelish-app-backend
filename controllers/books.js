@@ -16,18 +16,18 @@ const isThisWeek = (date) => {
   return date >= firstDayOfWeek && date <= lastDayOfWeek
 }
 
-const getRatingsAndComments = async (comments) => {
+const getRatingsAndComments = async (comments, all) => {
   let total = 0
   let totalCom = 0
   let i = 0
   for (let x of comments) {
-    if (isThisWeek(x.dateCreated)) {
+    if (isThisWeek(x.dateCreated) || all) {
       total += x.rating
       totalCom += x.replies.length + 1
       i++
     } else {
       for (let replies of x.replies) {
-        if (isThisWeek(replies.dateCreated)) {
+        if (isThisWeek(replies.dateCreated) || all) {
           console.log(replies)
           totalCom += 1
         }
@@ -37,10 +37,10 @@ const getRatingsAndComments = async (comments) => {
   }
   return { total, totalCom, i }
 }
-const getTotalReads = async (reads) => {
+const getTotalReads = async (reads, all) => {
   let total = 0
   for (let x of reads) {
-    if (isThisWeek(x.date)) {
+    if (isThisWeek(x.date) || all) {
       total += 1
     }
   }
@@ -67,6 +67,8 @@ const getAllBooks = async (req, res) => {
         chapters: 1,
         viewedBy: 1,
         likedBy: 1,
+        description: 1,
+        publishDate: 1,
       }
     )
     const book = []
@@ -91,12 +93,13 @@ const getAllBooks = async (req, res) => {
       const editorsRating = Number(
         (bk.chapters.length + bk.likedBy.length + bk.viewedBy.length) / 3 ?? 0
       )
-      console.log(editorsRating)
+
       book.push({
         _id: bk._id,
         bookName: bk.bookName,
         bookCoverImg: bk.bookCoverImg,
         bookAuthor: bk.bookAuthor,
+        description: bk.description,
         status: bk.status,
         language: bk.language,
         mainGenre: bk.mainGenre,
@@ -104,7 +107,9 @@ const getAllBooks = async (req, res) => {
         featuredRating,
         trendingRating,
         editorsRating,
+        likes: bk.likedBy?.length ?? 0,
         lastUpdate: bk.lastUpdated,
+        publishDate: bk.publishDate,
       })
     }
     const authors = await Authors.find(
@@ -163,6 +168,7 @@ const getAllPageBook = async (req, res) => {
           mainGenre: 1,
           secondaryGenre: 1,
           lastUpdated: 1,
+          description: 1,
           chapterNumber: { $size: '$chapters' },
           views: { $size: '$viewedBy' },
           likes: { $size: '$likedBy' },
@@ -191,6 +197,7 @@ const getPopularityPageBook = async (req, res) => {
           language: 1,
           mainGenre: 1,
           secondaryGenre: 1,
+          description: 1,
           lastUpdated: 1,
           chapterNumber: { $size: '$chapters' },
           views: { $size: '$viewedBy' },
@@ -220,6 +227,7 @@ const getUpdatesPageBook = async (req, res) => {
           language: 1,
           mainGenre: 1,
           secondaryGenre: 1,
+          description: 1,
           lastUpdated: 1,
           chapterNumber: { $size: '$chapters' },
           views: { $size: '$viewedBy' },
@@ -234,14 +242,9 @@ const getUpdatesPageBook = async (req, res) => {
     return res.status(500).json({ message: err.message })
   }
 }
-const getCompletedBook = async (req, res) => {
+const getChapterBook = async (req, res) => {
   try {
     const books = await Books.aggregate([
-      {
-        $match: {
-          status: 'completed',
-        },
-      },
       {
         $project: {
           _id: 1,
@@ -252,6 +255,7 @@ const getCompletedBook = async (req, res) => {
           author: 1,
           language: 1,
           mainGenre: 1,
+          description: 1,
           secondaryGenre: 1,
           lastUpdated: 1,
           chapterNumber: { $size: '$chapters' },
@@ -259,7 +263,7 @@ const getCompletedBook = async (req, res) => {
           likes: { $size: '$likedBy' },
         },
       },
-      { $sort: { likes: -1 } },
+      { $sort: { chapterNumber: -1 } },
     ])
 
     return res.json(books.slice(req.params.start, req.params.end))
@@ -287,15 +291,15 @@ const viewBook = async (req, res) => {
       val.viewedBy.push({ _id: req.userId })
       await val.save()
     }
-    let bookData = await getRatingsAndComments(val.comments)
+    let bookData = await getRatingsAndComments(val.comments, true)
     let chapterRating = 0
     let totalComments = 0
     let totalReads = 0
     let iterate = 0
     let chapters = []
     for (let x of val.chapters) {
-      let data = await getRatingsAndComments(x.comments)
-      totalReads += await getTotalReads(x.readBy)
+      let data = await getRatingsAndComments(x.comments, true)
+      totalReads += await getTotalReads(x.readBy, true)
 
       chapterRating += data.total
       totalComments += data.totalCom
@@ -306,9 +310,13 @@ const viewBook = async (req, res) => {
           chapterName: x.chapterName,
           coinPrice: x.coinPrice,
           approval: x.approval,
+          unlockedByUser: x.unlockedBy.id(req.userId) ? true : false,
         })
       iterate += 1
     }
+    const users = await Users.findOne({ _id: req.userId }, { libraries: 1 })
+    let saved = true
+    if (users.libraries.id(val._id) === null) saved = false
     const newData = {
       _id: val._id,
       rating:
@@ -332,6 +340,7 @@ const viewBook = async (req, res) => {
         ? true
         : false,
       lastUpdated: val.lastUpdated,
+      saved,
     }
 
     return res.json({ data: newData, tkn: req.tkn, rtkn: req.rtkn })
@@ -589,6 +598,6 @@ module.exports = {
   likeBook,
   getPopularityPageBook,
   getUpdatesPageBook,
-  getCompletedBook,
+  getChapterBook,
   viewBook,
 }

@@ -7,6 +7,7 @@ const {
   addBookToLibrary,
   getUserLibraries,
   newCode,
+  deleteUserLibraries,
 } = require('../controllers/users')
 const { uploadImg } = require('../controllers/userImages')
 const {
@@ -24,7 +25,11 @@ router.patch('/requestOtp', verifyToSend, newCode)
 router.get('/login/:password', userExist, loggedIn)
 router.post('/insertPic', [uploadImg, authenticate], insertProfilePicture)
 router.patch('/library/:bookId', authenticate, addBookToLibrary)
+router.get('/login', authenticate, (req, res) =>
+  res.json({ tkn: req.tkn, rtkn: req.rtkn })
+)
 router.get('/library', authenticate, getUserLibraries)
+router.patch('/library', authenticate, deleteUserLibraries)
 router.post('/', [checkEmail, checkUser], addUser)
 
 module.exports = router

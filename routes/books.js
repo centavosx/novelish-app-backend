@@ -11,7 +11,7 @@ const {
   likeBook,
   getPopularityPageBook,
   getUpdatesPageBook,
-  getCompletedBook,
+  getChapterBook,
   viewBook,
 } = require('../controllers/books')
 const { uploadImg } = require('../controllers/bookImages')
@@ -20,7 +20,7 @@ router.get('/', getAllBooks)
 router.get('/all/:start/:end', getAllPageBook)
 router.get('/popular/:start/:end', getPopularityPageBook)
 router.get('/updates/:start/:end', getUpdatesPageBook)
-router.get('/completed/:start/:end', getCompletedBook)
+router.get('/chapterNumber/:start/:end', getChapterBook)
 // router.get('/getBook/:id', getBook, (req, res) => {
 //   res.send(res.book)
 // })
@@ -28,7 +28,7 @@ router.get('/completed/:start/:end', getCompletedBook)
 router.post('/', uploadImg, addBook)
 router.get('/:bookId/:chapterId', authenticate, readChapter)
 router.get('/:bookId', authenticate, viewBook)
-router.patch('/:bookId', authenticate, likeBook)
+router.patch('/like/:bookId', authenticate, likeBook)
 router.patch('/:bookId/:chapterId', authenticate, unlockChapter)
 router.patch('/:id', updateBook)
 router.post('/chapter/:id', addChapter)

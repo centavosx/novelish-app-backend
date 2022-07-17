@@ -22,6 +22,7 @@ const otpSchema = new mongoose.Schema({
     default: new Date(new Date().setMinutes(new Date().getMinutes() + 5)),
   },
 })
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -73,6 +74,10 @@ const userSchema = new mongoose.Schema({
     type: Date,
     required: true,
     default: Date.now,
+  },
+  dateVerified: {
+    type: Date,
+    required: false,
   },
   lastLogin: {
     type: Date,

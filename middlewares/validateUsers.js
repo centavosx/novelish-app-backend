@@ -48,7 +48,7 @@ const userExist = async function (req, res, next) {
       user.password
     )
     if (!isPasswordValid)
-      return res.status(500).json({ message: 'Invalid password' })
+      return res.status(403).json({ message: 'Invalid password' })
     next()
   } catch (e) {
     return res.status(500).json({ message: e.message })
