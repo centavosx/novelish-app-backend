@@ -28,7 +28,6 @@ const getRatingsAndComments = async (comments, all) => {
     } else {
       for (let replies of x.replies) {
         if (isThisWeek(replies.dateCreated) || all) {
-          console.log(replies)
           totalCom += 1
         }
       }
@@ -279,7 +278,7 @@ const viewBook = async (req, res) => {
       {
         'tags._id': 0,
         approval: 0,
-        publishDate: 0,
+
         'chapters.chapterStory': 0,
       }
     )
@@ -340,10 +339,50 @@ const viewBook = async (req, res) => {
         ? true
         : false,
       lastUpdated: val.lastUpdated,
+      publishDate: val.publishDate,
       saved,
     }
 
     return res.json({ data: newData, tkn: req.tkn, rtkn: req.rtkn })
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
+const getBookChapters = async (req, res) => {
+  try {
+    const val = await Books.findOne(
+      { _id: req.params.bookId },
+      {
+        'chapters.chapterNumber': 1,
+        'chapters._id': 1,
+        'chapters.chapterName': 1,
+        'chapters.coinPrice': 1,
+        'chapters.publishDate': 1,
+        'chapters.isPublished': 1,
+        'chapters.unlockedBy': 1,
+      }
+    )
+    if (val === null)
+      return res
+        .status(403)
+        .json({ message: 'Book not found', tkn: req.tkn, rtkn: req.rtkn })
+
+    let chapters = []
+    for (let x of val.chapters) {
+      if (x.isPublished && new Date() >= new Date(x.publishDate))
+        chapters.push({
+          _id: x._id,
+          chapterNumber: x.chapterNumber,
+          chapterName: x.chapterName,
+          coinPrice: x.coinPrice,
+          approval: x.approval,
+          unlockedByUser: x.unlockedBy.id(req.userId) ? true : false,
+        })
+    }
+    return res.json({ data: chapters, tkn: req.tkn, rtkn: req.rtkn })
   } catch (err) {
     return res
       .status(500)
@@ -389,14 +428,23 @@ const unlockChapter = async (req, res) => {
         rtkn: req.rtkn,
       })
     const userCoins = req.userCoin
+    if (val.chapters[0].coinPrice === 0)
+      return res.status(200).json({
+        updated: true,
+        message: 'This chapter is free',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
     if (val.chapters[0].unlockedBy.id(req.userId) !== null)
       return res.status(200).json({
+        updated: true,
         message: 'User already bought this chapter',
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
     if (userCoins < val.chapters[0].coinPrice)
       return res.status(200).json({
+        updated: false,
         message: 'Not enough coins',
         tkn: req.tkn,
         rtkn: req.rtkn,
@@ -408,14 +456,12 @@ const unlockChapter = async (req, res) => {
       { _id: req.userId },
       { experience: req.userExp + 100 }
     )
-    val.save(async (err) => {
-      if (err) return res.status(500).json({ message: err.toString() })
-      const updated = await Users.updateOne(
-        { _id: req.userId },
-        { coin: userCoins - val.chapters[0].coinPrice }
-      )
-      return res.json({ ...updated, tkn: req.tkn, rtkn: req.rtkn })
-    })
+    await val.save()
+    await Users.updateOne(
+      { _id: req.userId },
+      { coin: userCoins - val.chapters[0].coinPrice }
+    )
+    return res.json({ updated: true, tkn: req.tkn, rtkn: req.rtkn })
   } catch (err) {
     return res
       .status(500)
@@ -440,6 +486,9 @@ const readChapter = async (req, res) => {
             _id: req.params.chapterId,
           },
         },
+        bookName: 1,
+        bookCoverImg: 1,
+        bookAuthor: 1,
       }
     )
     if (val === null)
@@ -452,7 +501,11 @@ const readChapter = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    if (val.chapters[0].unlockedBy.id(req.userId) === null)
+    console.log(val)
+    if (
+      val.chapters[0].unlockedBy.id(req.userId) === null &&
+      val.chapters[0].coinPrice > 0
+    )
       return res.status(403).json({
         message: 'Not owned by this user',
         tkn: req.tkn,
@@ -466,6 +519,9 @@ const readChapter = async (req, res) => {
     }
     return res.json({
       chapterData: {
+        bookName: val.bookName,
+        bookAuthor: val.bookAuthor,
+        bookCoverImg: val.bookCoverImg,
         chapterName: val.chapters[0].chapterName,
         chapterNumber: val.chapters[0].chapterNumber,
         chapterStory: val.chapters[0].chapterStory,
@@ -600,4 +656,5 @@ module.exports = {
   getUpdatesPageBook,
   getChapterBook,
   viewBook,
+  getBookChapters,
 }

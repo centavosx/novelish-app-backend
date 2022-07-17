@@ -3,7 +3,7 @@ const CryptoJS = require('crypto-js')
 const encryptText = (d = '') => {
   const salt = CryptoJS.lib.WordArray.random(128 / 8)
   const iv = CryptoJS.lib.WordArray.random(128 / 8)
-  console.log(d)
+
   const key = CryptoJS.PBKDF2(process.env.KEY_VALUE, salt, {
     keySize: 128 / 32,
   })

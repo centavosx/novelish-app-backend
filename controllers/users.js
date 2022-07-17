@@ -215,7 +215,6 @@ const deleteUserLibraries = async (req, res) => {
     val.save()
     return res.json({ removed: true, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
-    console.log(e)
     return res
       .status(500)
       .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
