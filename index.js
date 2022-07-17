@@ -7,6 +7,8 @@ const mongoose = require('mongoose')
 const booksRouter = require('./routes/books')
 const commentsRouter = require('./routes/comments')
 const imageRouter = require('./routes/images')
+const bodyParser = require('body-parser')
+const cors = require('cors')
 const userRouter = require('./routes/users')
 require('dotenv').config()
 
@@ -17,8 +19,35 @@ db.on('error', (error) => console.log(error))
 db.once('open', () => console.log('Connected'))
 
 app.use(express.json())
+app.use(
+  bodyParser.json({
+    limit: '50mb',
+  })
+)
+app.use(cors())
+
+app.use(
+  bodyParser.urlencoded({
+    limit: '50mb',
+    parameterLimit: 100000,
+    extended: false,
+  })
+)
+
+app.use(function async(req, res, next) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, OPTIONS, PUT, PATCH, DELETE'
+  )
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
+  res.setHeader('Access-Control-Allow-Credentials', true)
+  next()
+})
+
 app.use('/books', booksRouter)
 app.use('/comments', commentsRouter)
 app.use('/images', imageRouter)
 app.use('/users', userRouter)
+app.get('/', (req, res) => res.send('TEST'))
 app.listen(3000, () => console.log('Started'))
