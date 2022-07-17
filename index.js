@@ -11,7 +11,6 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const userRouter = require('./routes/users')
 require('dotenv').config()
-
 mongoose.connect(process.env.DATABASE_URL)
 const db = mongoose.connection
 
@@ -25,25 +24,6 @@ app.use(
   })
 )
 app.use(cors())
-
-app.use(
-  bodyParser.urlencoded({
-    limit: '50mb',
-    parameterLimit: 100000,
-    extended: false,
-  })
-)
-
-app.use(function async(req, res, next) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader(
-    'Access-Control-Allow-Methods',
-    'GET, POST, OPTIONS, PUT, PATCH, DELETE'
-  )
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
-  res.setHeader('Access-Control-Allow-Credentials', true)
-  next()
-})
 
 app.use('/books', booksRouter)
 app.use('/comments', commentsRouter)
