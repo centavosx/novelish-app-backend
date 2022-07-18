@@ -6,11 +6,14 @@ const Users = require('../models/users')
 const getCoins = async (req, res) => {
   try {
     const coins = await Coins.find({})
-    return res.json({ coins })
+    return res.json({ coins, coin: req.userCoin, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
-    return res
-      .status(403)
-      .json({ success: false, message: 'An error has occurred' })
+    return res.status(403).json({
+      success: false,
+      message: 'An error has occurred',
+      tkn: req.tkn,
+      rtkn: req.rtkn,
+    })
   }
 }
 
@@ -145,6 +148,7 @@ const getTransactions = async (req, res) => {
     const transactions = await Transactions.find({ userId: req.userId })
     return res.json({
       trans: transactions.slice(req.params.start, req.params.end),
+      coin: req.userCoin,
       tkn: req.tkn,
       rtkn: req.rtkn,
     })

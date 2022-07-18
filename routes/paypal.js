@@ -15,5 +15,5 @@ router.get('/cancelled', (req, res) =>
 router.get('/success', success)
 router.get('/:start/:end', authenticate, getTransactions)
 router.post('/pay', authenticate, pay)
-router.get('/coins', getCoins)
+router.get('/coins', authenticate, getCoins)
 module.exports = router
