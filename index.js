@@ -4,9 +4,11 @@ const app = express()
 const { decryptText } = require('./encryption')
 
 const mongoose = require('mongoose')
+const paypal = require('paypal-rest-sdk')
 const booksRouter = require('./routes/books')
 const commentsRouter = require('./routes/comments')
 const imageRouter = require('./routes/images')
+const paypalRouter = require('./routes/paypal')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const userRouter = require('./routes/users')
@@ -16,6 +18,11 @@ const db = mongoose.connection
 
 db.on('error', (error) => console.log(error))
 db.once('open', () => console.log('Connected'))
+paypal.configure({
+  mode: process.env.PAYPAL_MODE,
+  client_id: process.env.PAYPAL_CLIENTID,
+  client_secret: process.env.PAYPAL_CLIENTSECRET,
+})
 
 app.use(express.json())
 app.use(
@@ -46,6 +53,7 @@ app.use(function async(req, res, next) {
 
 app.use('/books', booksRouter)
 app.use('/comments', commentsRouter)
+app.use('/transactions', paypalRouter)
 app.use('/images', imageRouter)
 app.use('/users', userRouter)
 app.get('/', (req, res) => res.send('TEST'))
