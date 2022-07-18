@@ -56,7 +56,7 @@ const getComments = async (req, res) => {
     })
   } catch (e) {
     return res
-      .status(400)
+      .status(500)
       .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
   }
 }

@@ -221,6 +221,23 @@ const deleteUserLibraries = async (req, res) => {
   }
 }
 
+const getUserProfile = async (req, res) => {
+  try {
+    const user = await Users.findOne(
+      { _id: req.userId },
+      { libraries: 0, verification: 0, password: 0 }
+    )
+    if (!user) return res.status(403).json({ message: "User doesn't exist" })
+    if (!user.verified)
+      return res.status(403).json({ message: 'User is not yet verified' })
+    return res.json({ data: user, tkn: req.tkn, rtkn: req.rtkn })
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
 module.exports = {
   addUser,
   loggedIn,
@@ -229,4 +246,5 @@ module.exports = {
   getUserLibraries,
   newCode,
   deleteUserLibraries,
+  getUserProfile,
 }
