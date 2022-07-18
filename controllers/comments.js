@@ -300,7 +300,6 @@ const addChapterCommentReply = async (req, res) => {
         req.params.chapterId,
         req.params.commentId,
         req.body.message,
-        req.body.rating,
       ])
     )
       return res.status(500).json({
