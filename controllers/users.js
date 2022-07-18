@@ -190,7 +190,14 @@ const getUserLibraries = async (req, res) => {
     const val = await Users.findOne({ _id: req.userId }, { 'libraries._id': 1 })
     const book = await Books.find(
       { $or: val.libraries },
-      { _id: 1, bookName: 1, bookCoverImg: 1 }
+      {
+        _id: 1,
+        bookName: 1,
+        bookCoverImg: 1,
+        mainGenre: 1,
+        secondaryGenre: 1,
+        publishDate: 1,
+      }
     )
     return res.json({ book, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
