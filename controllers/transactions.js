@@ -1,6 +1,18 @@
 const paypal = require('paypal-rest-sdk')
 const Transactions = require('../models/transactions')
 const Coins = require('../models/coinPrice')
+const Users = require('../models/users')
+
+const getCoins = async (req, res) => {
+  try {
+    const coins = await Coins.find({})
+    return res.json({ coins })
+  } catch (e) {
+    return res
+      .status(403)
+      .json({ success: false, message: 'An error has occurred' })
+  }
+}
 
 const success = async (req, res) => {
   try {
@@ -26,6 +38,17 @@ const success = async (req, res) => {
             success: false,
             message: 'Transaction is already complete',
           })
+        const coin = await Coins.findOne({
+          name: req.body.payment.transactions[0].item_list.items[0].name,
+        })
+        if (!coin)
+          return res.status(400).json({
+            message: 'Error has occurred',
+          })
+        const users = Users.findOne({ _id: req.userId }, { coin: 1 })
+        const userCoin = users.coin
+        users.coin = userCoin + coin.coin
+
         const trans = {
           paypalId: payment.id,
           cartId: payment.cart,
@@ -37,9 +60,11 @@ const success = async (req, res) => {
           item: payment.transactions[0].item_list.items[0].name,
           refId: payment.transactions[0].related_resources[0].sale.id,
           transaction: 'online',
+          coin: coin.coin,
         }
 
         const transactions = new Transactions(trans)
+        await users.save()
         await transactions.save()
         return res.json({ success: true, message: 'Success' })
       }
@@ -115,7 +140,24 @@ const pay = async (req, res) => {
   }
 }
 
+const getTransactions = async (req, res) => {
+  try {
+    const transactions = await Transactions.find({ userId: req.userId })
+    return res.json({
+      trans: transactions.slice(req.params.start, req.params.end),
+      tkn: req.tkn,
+      rtkn: req.rtkn,
+    })
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ message: 'Error has occurred', tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
 module.exports = {
   pay,
   success,
+  getTransactions,
+  getCoins,
 }

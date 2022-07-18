@@ -465,6 +465,7 @@ const unlockChapter = async (req, res) => {
       { _id: req.userId },
       { coin: userCoins - val.chapters[0].coinPrice }
     )
+
     return res.json({ updated: true, tkn: req.tkn, rtkn: req.rtkn })
   } catch (err) {
     return res

@@ -42,6 +42,10 @@ const transactionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  coin: {
+    type: Number,
+    required: true,
+  },
 })
 
 module.exports = mongoose.model('Transactions', transactionSchema)

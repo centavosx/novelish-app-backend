@@ -23,6 +23,18 @@ const otpSchema = new mongoose.Schema({
   },
 })
 
+const dailySchema = new mongoose.Schema({
+  loggedIn: {
+    type: Boolean,
+    required: false,
+  },
+  date: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+})
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -91,6 +103,14 @@ const userSchema = new mongoose.Schema({
   verification: {
     type: otpSchema,
     required: false,
+  },
+  dailyLogin: {
+    type: [dailySchema],
+  },
+  attempt: {
+    type: Number,
+    required: true,
+    default: 0,
   },
 })
 
