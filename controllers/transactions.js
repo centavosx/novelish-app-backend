@@ -42,13 +42,17 @@ const success = async (req, res) => {
             message: 'Transaction is already complete',
           })
         const coin = await Coins.findOne({
-          name: req.body.payment.transactions[0].item_list.items[0].name,
+          name: payment.transactions[0].item_list.items[0].name,
         })
         if (!coin)
           return res.status(400).json({
             message: 'Error has occurred',
           })
-        const users = Users.findOne({ _id: req.userId }, { coin: 1 })
+        const users = await Users.findOne(
+          { _id: payment.transactions[0].description },
+          { coin: 1 }
+        )
+
         const userCoin = users.coin
         users.coin = userCoin + coin.coin
 
@@ -83,7 +87,11 @@ const pay = async (req, res) => {
   try {
     const coin = await Coins.findOne({ name: req.body.name })
     if (!coin)
-      return res.json(403).json({ message: 'Invalid coin to purchase' })
+      return res.json(403).json({
+        message: 'Invalid coin to purchase',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
 
     const create_payment_json = {
       intent: 'sale',
@@ -117,11 +125,12 @@ const pay = async (req, res) => {
         },
       ],
     }
-    paypal.payment.create(create_payment_json, function (error, payment) {
+
+    paypal.payment.create(create_payment_json, (error, payment) => {
       if (error)
         return res
           .status(500)
-          .json({ message: 'Error has occurred', tkn: req.tkn, rtkn: req.rtkn })
+          .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
 
       for (let i = 0; i < payment.links.length; i++) {
         if (payment.links[i].rel === 'approval_url') {
@@ -139,7 +148,7 @@ const pay = async (req, res) => {
   } catch (e) {
     return res
       .status(500)
-      .json({ message: 'Error has occurred', tkn: req.tkn, rtkn: req.rtkn })
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
   }
 }
 
