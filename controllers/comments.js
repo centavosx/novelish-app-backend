@@ -351,10 +351,10 @@ const addChapterCommentReply = async (req, res) => {
     let userData = {}
     let newComment = await getCommentsWithUserData(
       userData,
-      val.chapters[0].comments.replies,
+      getComment.replies,
       req.userId
     )
-    return res.json({ comments: newComment, tkn: req.tkn, rtkn: req.rtkn })
+    return res.json({ replies: newComment, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
     return res
       .status(400)
