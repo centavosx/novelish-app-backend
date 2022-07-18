@@ -48,14 +48,16 @@ const getComments = async (req, res) => {
       req.userId
     )
 
-    res.json({
+    return res.json({
       _id: comments._id,
       comments: newComment,
       tkn: req.tkn,
       rtkn: req.rtkn,
     })
   } catch (e) {
-    res.status(400).json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+    return res
+      .status(400)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
   }
 }
 const getReplies = async (req, res) => {
@@ -70,7 +72,7 @@ const getReplies = async (req, res) => {
       val.replies,
       req.userId
     )
-    res.json({
+    return res.json({
       _id: val._id,
       user: userData[req.params.id].username,
       img: userData[req.params.id].img,
@@ -86,7 +88,9 @@ const getReplies = async (req, res) => {
       rtkn: req.rtkn,
     })
   } catch (e) {
-    res.status(400).json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+    return res
+      .status(400)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
   }
 }
 
@@ -110,7 +114,7 @@ const addComment = async (req, res) => {
       })
     if (val.comments.id(req.userId) !== null)
       return res.status(403).json({
-        message: 'You already commented in this story',
+        message: 'You already submitted a review in this story',
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
@@ -120,9 +124,17 @@ const addComment = async (req, res) => {
       message: data.message,
     })
     await val.save()
-    res.json({ added: true, tkn: req.tkn, rtkn: req.rtkn })
+    let userData = {}
+    let newComment = await getCommentsWithUserData(
+      userData,
+      val.comments,
+      req.userId
+    )
+    return res.json({ comments: newComment, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
-    res.status(500).json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+    return res
+      .status(500)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
   }
 }
 const addReply = async (req, res) => {
@@ -139,17 +151,15 @@ const addReply = async (req, res) => {
       _id: Types.ObjectId(req.userId),
       message: req.body.message,
     })
-    value.save((err) => {
-      if (err)
-        return res
-          .status(500)
-          .json({ message: err.toString(), tkn: req.tkn, rtkn: req.rtkn })
-      return res.json({
-        added: true,
-        tkn: req.tkn,
-        rtkn: req.rtkn,
-      })
-    })
+    await value.save()
+
+    let userData = {}
+    let newComment = await getCommentsWithUserData(
+      userData,
+      comments.replies,
+      req.userId
+    )
+    return res.json({ replies: newComment, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
     return res
       .status(400)
@@ -184,7 +194,10 @@ const getChapterComments = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    if (val.chapters[0].unlockedBy.id(req.userId) === null)
+    if (
+      val.chapters[0].unlockedBy.id(req.userId) === null &&
+      val.chapters[0].coinPrice > 0
+    )
       return res.status(403).json({
         message: 'Not owned by this user',
         tkn: req.tkn,
@@ -243,7 +256,10 @@ const addChapterComments = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    if (val.chapters[0].unlockedBy.id(req.userId) === null)
+    if (
+      val.chapters[0].unlockedBy.id(req.userId) === null &&
+      val.chapters[0].coinPrice > 0
+    )
       return res.status(403).json({
         message: 'Not owned by this user',
         tkn: req.tkn,
@@ -252,7 +268,7 @@ const addChapterComments = async (req, res) => {
 
     if (val.chapters[0].comments.id(req.userId) !== null)
       return res.status(403).json({
-        message: 'You already commented in this book',
+        message: 'You already submitted a review in this book',
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
@@ -262,11 +278,13 @@ const addChapterComments = async (req, res) => {
       rating: req.body.rating,
     })
     await val.save()
-    return res.json({
-      added: true,
-      tkn: req.tkn,
-      rtkn: req.rtkn,
-    })
+    let userData = {}
+    let newComment = await getCommentsWithUserData(
+      userData,
+      val.chapters[0].comments,
+      req.userId
+    )
+    return res.json({ comments: newComment, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
     return res
       .status(400)
@@ -309,7 +327,10 @@ const addChapterCommentReply = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    if (val.chapters[0].unlockedBy.id(req.userId) === null)
+    if (
+      val.chapters[0].unlockedBy.id(req.userId) === null &&
+      val.chapters[0].coinPrice > 0
+    )
       return res.status(403).json({
         message: 'Not owned by this user',
         tkn: req.tkn,
@@ -328,11 +349,13 @@ const addChapterCommentReply = async (req, res) => {
       rating: req.body.rating,
     })
     await val.save()
-    return res.json({
-      added: true,
-      tkn: req.tkn,
-      rtkn: req.rtkn,
-    })
+    let userData = {}
+    let newComment = await getCommentsWithUserData(
+      userData,
+      val.chapters[0].comments.replies,
+      req.userId
+    )
+    return res.json({ comments: newComment, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
     return res
       .status(400)
@@ -373,7 +396,10 @@ const getChapterCommentReply = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    if (val.chapters[0].unlockedBy.id(req.userId) === null)
+    if (
+      val.chapters[0].unlockedBy.id(req.userId) === null &&
+      val.chapters[0].coinPrice > 0
+    )
       return res.status(403).json({
         message: 'Not owned by this user',
         tkn: req.tkn,
