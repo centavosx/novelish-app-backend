@@ -9,9 +9,8 @@ const {
 } = require('../controllers/transactions')
 const { authenticate } = require('../middlewares/authenticate')
 
-router.get('/cancelled', (req, res) =>
-  res.json({ message: 'Cancelled', success: false })
-)
+router.get('/cancelled', (req, res) => res.render('cancelled'))
+
 router.get('/success', success)
 router.get('/:start/:end', authenticate, getTransactions)
 router.post('/pay', authenticate, pay)

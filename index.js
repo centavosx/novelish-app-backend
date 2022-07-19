@@ -13,9 +13,15 @@ const rewardsRouter = require('./routes/rewards')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const userRouter = require('./routes/users')
+const engines = require('consolidate')
+
 require('dotenv').config()
 mongoose.connect(process.env.DATABASE_URL)
 const db = mongoose.connection
+
+app.engine('ejs', engines.ejs)
+app.set('views', './views')
+app.set('view engine', 'ejs')
 
 db.on('error', (error) => console.log(error))
 db.once('open', () => console.log('Connected'))

@@ -28,26 +28,16 @@ const success = async (req, res) => {
       paymentId,
       execute_payment_json,
       async (err, payment) => {
-        if (err)
-          return res
-            .status(403)
-            .json({ success: false, message: 'An error has occurred' })
+        if (err) return res.render('cancelled')
         const check = await Transactions.findOne({
           paypalId: payment.id,
           refId: payment.transactions[0].related_resources[0].sale.id,
         })
-        if (check)
-          return res.status(403).json({
-            success: false,
-            message: 'Transaction is already complete',
-          })
+        if (check) return res.render('cancelled')
         const coin = await Coins.findOne({
           name: payment.transactions[0].item_list.items[0].name,
         })
-        if (!coin)
-          return res.status(400).json({
-            message: 'Error has occurred',
-          })
+        if (!coin) return res.render('cancelled')
         const users = await Users.findOne(
           { _id: payment.transactions[0].description },
           { coin: 1 }
@@ -73,13 +63,12 @@ const success = async (req, res) => {
         const transactions = new Transactions(trans)
         await users.save()
         await transactions.save()
-        return res.json({ success: true, message: 'Success' })
+
+        return res.render('success')
       }
     )
   } catch (e) {
-    return res
-      .status(403)
-      .json({ success: false, message: 'An error has occurred' })
+    return res.render('cancelled')
   }
 }
 
