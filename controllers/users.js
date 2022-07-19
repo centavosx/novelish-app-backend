@@ -1,5 +1,6 @@
 const Users = require('../models/users')
 const UserImages = require('../models/userImages')
+const Authors = require('../models/author')
 const Books = require('../models/books')
 const Token = require('../models/token')
 const bcrypt = require('bcrypt')
@@ -238,6 +239,25 @@ const getUserProfile = async (req, res) => {
     if (!user.verified)
       return res.status(403).json({ message: 'User is not yet verified' })
     return res.json({ data: user, tkn: req.tkn, rtkn: req.rtkn })
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
+const getNotifications = async (req, res) => {
+  try {
+    const users = Users.find({})
+    const books = Books.find({})
+    // const authors =
+    // let notifs
+
+    for (let x of books) {
+      const comments = x.comments
+      const chapters = x.chapters
+      const isPublished = x.isPublished
+    }
   } catch (e) {
     return res
       .status(500)

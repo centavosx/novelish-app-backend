@@ -320,8 +320,13 @@ const viewBook = async (req, res) => {
     const users = await Users.findOne({ _id: req.userId }, { libraries: 1 })
     let saved = true
     if (users.libraries.id(val._id) === null) saved = false
+    const author = await Authors.findOne(
+      { penName: val.bookAuthor },
+      { name: 1, img: 1, penName: 1, bio: 1, email: 1 }
+    )
     const newData = {
       _id: val._id,
+      author,
       rating:
         ((bookData.total / bookData.i ?? 0) + (chapterRating / iterate ?? 0)) /
         2,

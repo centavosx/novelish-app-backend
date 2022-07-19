@@ -10,21 +10,26 @@ const commentsRouter = require('./routes/comments')
 const imageRouter = require('./routes/images')
 const paypalRouter = require('./routes/paypal')
 const rewardsRouter = require('./routes/rewards')
+const authorRouter = require('./routes/authors')
 const bodyParser = require('body-parser')
+const { io } = require('./socket.js')
 const cors = require('cors')
 const userRouter = require('./routes/users')
+const http = require('http')
 const engines = require('consolidate')
 
 require('dotenv').config()
 mongoose.connect(process.env.DATABASE_URL)
 const db = mongoose.connection
-
+const server = http.createServer(app)
+io.attach(server)
 app.engine('ejs', engines.ejs)
 app.set('views', './views')
 app.set('view engine', 'ejs')
 
 db.on('error', (error) => console.log(error))
 db.once('open', () => console.log('Connected'))
+
 paypal.configure({
   mode: process.env.PAYPAL_MODE,
   client_id: process.env.PAYPAL_CLIENTID,
@@ -63,6 +68,7 @@ app.use('/comments', commentsRouter)
 app.use('/transactions', paypalRouter)
 app.use('/images', imageRouter)
 app.use('/rewards', rewardsRouter)
+app.use('/authors', authorRouter)
 app.use('/users', userRouter)
 app.get('/', (req, res) => res.send('TEST'))
-app.listen(process.env.PORT || 3000, () => console.log('Started'))
+server.listen(process.env.PORT || 3000, () => console.log('Started'))
