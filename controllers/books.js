@@ -322,11 +322,21 @@ const viewBook = async (req, res) => {
     if (users.libraries.id(val._id) === null) saved = false
     const author = await Authors.findOne(
       { penName: val.bookAuthor },
-      { name: 1, img: 1, penName: 1, bio: 1, email: 1 }
+      { name: 1, img: 1, penName: 1, bio: 1, email: 1, followers: 1 }
     )
+    const books = await Books.find({ bookAuthor: val.bookAuthor })
+    const newDataAuthor = {
+      author: author.name,
+      img: author.img,
+      penName: author.penName,
+      bio: author.bio,
+      email: author.email,
+      followers: author.followers?.length ?? 0,
+      works: books.length,
+    }
     const newData = {
       _id: val._id,
-      author,
+      author: newDataAuthor,
       rating:
         ((bookData.total / bookData.i ?? 0) + (chapterRating / iterate ?? 0)) /
         2,
