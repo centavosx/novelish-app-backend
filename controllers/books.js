@@ -492,7 +492,8 @@ const unlockAllChapter = async (req, res) => {
         rtkn: req.rtkn,
       })
     const userCoins = req.userCoin
-    const total = 0
+    let count = 0
+    let total = 0
     for (index in val.chapters) {
       if (val.chapters[index].unlockedBy.id(req.userId) === null) {
         total += val.chapters[index].coinPrice
@@ -500,11 +501,18 @@ const unlockAllChapter = async (req, res) => {
 
         val.chapters[index].unlockedBy.push({ _id: Types.ObjectId(req.userId) })
       }
+      count += 1
     }
 
+    if (count === 0)
+      return res.status(403).push({
+        message: 'This book has no chapters',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
     if (total === 0)
       return res.status(403).push({
-        message: 'You already bought this book',
+        message: 'You already bought all chapters in this book',
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
