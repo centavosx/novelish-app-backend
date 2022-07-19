@@ -45,7 +45,7 @@ const success = async (req, res) => {
 
         const userCoin = users.coin
         users.coin = userCoin + coin.coin
-
+        console.log(users.coin, payment.transactions[0].description, userCoin)
         const trans = {
           paypalId: payment.id,
           cartId: payment.cart,
@@ -63,7 +63,6 @@ const success = async (req, res) => {
         const transactions = new Transactions(trans)
         await users.save()
         await transactions.save()
-
         return res.render('success')
       }
     )
