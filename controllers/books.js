@@ -473,6 +473,56 @@ const unlockChapter = async (req, res) => {
       .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
   }
 }
+const unlockAllChapter = async (req, res) => {
+  try {
+    if (!isRequired([req.params.bookId]))
+      return res.status(500).json({
+        message: 'Please fill up everything',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    const val = await Books.findOne({
+      _id: req.params.bookId,
+    })
+    const user = await Users.findOne({ _id: req.userId })
+    if (!val)
+      return res.status(403).json({
+        message: 'Book not found',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    const userCoins = req.userCoin
+    const total = 0
+    for (index in val.chapters) {
+      if (val.chapters[index].unlockedBy.id(req.userId) === null) {
+        total += val.chapters[index].coinPrice
+        user.experience += 100
+
+        val.chapters[index].unlockedBy.push({ _id: Types.ObjectId(req.userId) })
+      }
+    }
+
+    if (total === 0)
+      return res.status(403).push({
+        message: 'You already bought this book',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    if (userCoins < total)
+      return res
+        .status(403)
+        .push({ message: 'Not enough coins', tkn: req.tkn, rtkn: req.rtkn })
+    user.coin -= total
+    await user.save()
+    await val.save()
+    return res.json({ updated: true, tkn: req.tkn, rtkn: req.rtkn })
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: err.message, tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
 const readChapter = async (req, res) => {
   try {
     if (!isRequired([req.params.bookId, req.params.chapterId]))
@@ -662,4 +712,5 @@ module.exports = {
   getChapterBook,
   viewBook,
   getBookChapters,
+  unlockAllChapter,
 }

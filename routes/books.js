@@ -14,6 +14,7 @@ const {
   getChapterBook,
   viewBook,
   getBookChapters,
+  unlockAllChapter,
 } = require('../controllers/books')
 const { uploadImg } = require('../controllers/bookImages')
 const { authenticate } = require('../middlewares/authenticate')
@@ -32,6 +33,7 @@ router.get('/chapters/all/:bookId', authenticate, getBookChapters)
 router.get('/:bookId', authenticate, viewBook)
 router.patch('/like/:bookId', authenticate, likeBook)
 router.patch('/:bookId/:chapterId', authenticate, unlockChapter)
+router.patch('/unlock/all/:bookId', authenticate, unlockAllChapter)
 router.patch('/:id', updateBook)
 router.post('/chapter/:id', addChapter)
 

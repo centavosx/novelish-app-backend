@@ -144,7 +144,10 @@ const getTransactions = async (req, res) => {
   try {
     const transactions = await Transactions.find({ userId: req.userId })
     return res.json({
-      trans: transactions.slice(req.params.start, req.params.end),
+      trans: transactions.slice(
+        req.params.start,
+        req.params.end === 'all' ? transactions.length : req.params.end
+      ),
       coin: req.userCoin,
       tkn: req.tkn,
       rtkn: req.rtkn,
