@@ -142,7 +142,7 @@ const getAllBooks = async (req, res) => {
       featured: featured.slice(0, 9),
       updated: updated.slice(0, 9),
       completed: completed.slice(0, 9),
-      topAuthors: topAuthors.slice(0, 9),
+      topAuthors: topAuthors.slice(0, 5),
       editorsPick: editorsPick.slice(0, 9),
     }
 
