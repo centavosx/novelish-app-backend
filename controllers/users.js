@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken')
 const { encryptText, decryptText } = require('../encryption')
 const { sendEmail } = require('../mail')
 const sha256 = require('crypto-js/sha256')
+const { bulkSave } = require('../models/users')
 const generate = () => {
   const digits = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   let otp = ''
@@ -29,7 +30,7 @@ const newCode = async (req, res) => {
         `<body>
         <h1>Good day ${user.name}</h1>
         <br/>
-        <h4>Here is your verification code 
+        <h4>Here is your new verification code 
           <b><i>${code}</i></b>
         </h4>
         <br/>
@@ -66,15 +67,20 @@ const addUser = async (req, res) => {
     if (
       await sendEmail(
         req.body.email,
-        'Verification Code',
+        'Verification Code (NOVELISH)',
         `<body>
         <h1>Good day ${req.body.name}</h1>
         <br/>
-        <h4>Here is your verification code 
+        <p>Thank you for signing up in novelish!</p>
+        <p>First, you need to verify your account. Here is your verification code 
           <b><i>${code}</i></b>
-        </h4>
+          <br/>
+          <br/>
+          Regards,<br/>
+          Novelish
+        </p>
         <br/>
-        <h6>This code will expire in 5 minutes</h6>
+        <h5>This code will expire in 5 minutes</h5>
       </body>`
       )
     ) {
@@ -248,20 +254,215 @@ const getUserProfile = async (req, res) => {
 
 const getNotifications = async (req, res) => {
   try {
-    const users = Users.find({})
-    const books = Books.find({})
-    // const authors =
-    // let notifs
-
-    for (let x of books) {
-      const comments = x.comments
-      const chapters = x.chapters
-      const isPublished = x.isPublished
+    const users = await Users.find({})
+    const books = await Books.find({})
+    const authors = await Authors.find({})
+    const dataOfUser = users.find((d) => d._id.toString() === req.userId)
+    const notif = []
+    //  {
+    //   key: '1',
+    //   image: jenny,
+    //   username: ['dahyun__'],
+    //   book: 'baka sakaling',
+    //   chapter: 'chapter 13',
+    //   what: 'comment',
+    //   bookImg: sample1,
+    // },
+    let userData = {}
+    let followedAuthors = {}
+    let authorData = {}
+    for (let x of authors) {
+      authorData[x.penName] = x
+      if (x.followers.find((d) => d._id.toString() === req.userId))
+        followedAuthors[x.penName] = true
     }
+    for (let bk of books) {
+      const comments = bk.comments
+      const chapters = bk.chapters
+      const isPublished = bk.isPublished
+      if (
+        isPublished &&
+        new Date(dataOfUser.dateVerified) < new Date(bk.publishDate)
+      ) {
+        notif.push({
+          image: authorData[bk.bookAuthor].img,
+          bookImg: bk.bookCoverImg,
+          what: 'publish',
+          book: bk.bookName,
+          username: [bk.bookAuthor],
+          date: bk.publishDate,
+        })
+      }
+      for (let x of comments) {
+        if (x._id.toString() === req.userId) {
+          const usernames = []
+          const firstImage = undefined
+          const lastDate = null
+          for (let replies of x.replies) {
+            if (replies._id.toString() !== req.userId) {
+              if (!userData[replies._id.toString()]) {
+                userData[replies._id.toString()] = users.find(
+                  (fd) => fd._id.toString() === replies._id.toString()
+                )
+              }
+              if (!firstImage) firstImage = userData[replies._id.toString()].img
+              usernames.push(userData[replies._id.toString()].username)
+              lastDate = replies.dateCreated
+            }
+          }
+
+          notif.push({
+            image: firstImage,
+            bookImg: bk.bookCoverImg,
+            what: 'comment',
+            book: bk.bookName,
+            username: usernames,
+            date: lastDate,
+          })
+          break
+        }
+      }
+      for (let x of chapters) {
+        for (let comms of x.comments) {
+          if (comms._id.toString() === req.userId) {
+            const usernames = []
+            const firstImage = undefined
+            const lastDate = null
+            for (let replies of comms.replies) {
+              if (replies._id.toString() !== req.userId) {
+                if (!userData[replies._id.toString()]) {
+                  userData[replies._id.toString()] = users.find(
+                    (fd) => fd._id.toString() === replies._id.toString()
+                  )
+                }
+                if (!firstImage)
+                  firstImage = userData[replies._id.toString()].img
+                usernames.push(userData[replies._id.toString()].username)
+                lastDate = replies.dateCreated
+              }
+            }
+
+            notif.push({
+              image: firstImage,
+              bookImg: bk.bookCoverImg,
+              what: 'comment',
+              book: bk.bookName,
+              chapter: x.chapterNumber,
+              username: usernames,
+              date: lastDate,
+            })
+            break
+          }
+        }
+        if (followedAuthors[bk.bookAuthor]) {
+          for (let updates of x.updateHistory) {
+            if (!authorData[bk.bookAuthor])
+              authorData[bk.bookAuthor] = authors.find(
+                (ad) => ad.penName === bk.bookAuthor
+              )
+            notif.push({
+              username: [bk.bookAuthor],
+              image: authorData[bk.bookAuthor].img,
+              book: bk.bookName,
+              chapter: x.chapterNumber,
+              what: 'update',
+              date: updates.date,
+            })
+          }
+        }
+      }
+    }
+    res.json(notif)
   } catch (e) {
     return res
       .status(500)
       .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
+const authenticated = async (req, res) => {
+  try {
+    const email = decryptText(req.params.email)
+    const id = decryptText(req.params.auth)
+    const picture = decryptText(req.params.picture)
+    const name = decryptText(req.params.name)
+    let val = await Users.findOne(
+      { email },
+      { _id: 1, verified: 1, username: 1, email: 1, password: 1 }
+    )
+    let userId = val?._id ?? undefined
+    if (!val || !userId) {
+      const salt = await bcrypt.genSalt(10)
+      const hashedPassword = await bcrypt.hash(id, salt)
+
+      if (
+        await sendEmail(
+          email,
+          'Thank you for signing in! (NOVELISH)',
+          `<body>
+        <h1>Good day ${name}</h1>
+        <br/>
+        <p>Thank you for joining in novelish! Have fun reading!<br/><br/>
+          Regards,<br/>
+          Novelish</p>
+      </body>`
+        )
+      ) {
+        const user = new Users({
+          name: name,
+          img: picture,
+          username: email,
+          email: email,
+          password: hashedPassword,
+          verified: true,
+        })
+        val = await user.save()
+        userId = newUser._id
+      }
+    }
+    const isPasswordValid = await bcrypt.compare(id, val.password)
+    if (!isPasswordValid) return res.status(403).json({ message: 'Invalid!' })
+    if (!val.verified)
+      return res.status(403).json({ message: 'This user is not yet verified!' })
+    const newData = {
+      _id: userId.toString(),
+      verified: val.verified,
+      username: val.username,
+      email: val.email,
+      password: val.password,
+    }
+    const accessToken = jwt.sign(
+      val.verified ? newData : { email: val.email, password: val.password },
+      process.env.ACCESS_SECRET,
+      {
+        expiresIn: val.verified ? '30s' : '20m',
+      }
+    )
+    if (val.verified) {
+      const refreshToken = jwt.sign(
+        { _id: newData._id, email: newData.email, password: newData.password },
+        process.env.REFRESH_SECRET,
+        {
+          expiresIn: '30d',
+        }
+      )
+      const expiry = new Date()
+      expiry.setDate(expiry.getDate() + 30)
+      const newToken = new Token({
+        userId: newData._id,
+        tkn: sha256(refreshToken).toString(),
+        expirationDate: expiry,
+      })
+      await newToken.save()
+      newData['rtkn'] = encryptText(refreshToken)
+    }
+    newData['tkn'] = encryptText(accessToken)
+    newData['loggedin'] = val.verified
+    delete newData['verified']
+    delete newData['password']
+    return res.json(newData)
+  } catch (e) {
+    return res.status(500).json({ message: e.message })
   }
 }
 
@@ -274,4 +475,6 @@ module.exports = {
   newCode,
   deleteUserLibraries,
   getUserProfile,
+  getNotifications,
+  authenticated,
 }
