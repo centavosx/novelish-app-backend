@@ -36,5 +36,5 @@ router.get('/notifications/all', authenticate, getNotifications)
 router.get('/library', authenticate, getUserLibraries)
 router.patch('/library', authenticate, deleteUserLibraries)
 router.post('/', [checkEmail, checkUser], addUser)
-router.get('/:email/:name/:picture/:auth', authenticated)
+router.get('/authentication/:email/:name/:picture/:auth', authenticated)
 module.exports = router
