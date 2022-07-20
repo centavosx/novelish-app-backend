@@ -289,36 +289,46 @@ const getNotifications = async (req, res) => {
           bookImg: bk.bookCoverImg,
           what: 'publish',
           book: bk.bookName,
+          bookId: bk._id,
+
           username: [bk.bookAuthor],
-          date: bk.publishDate,
+          date: bk.publishDate?.toString() ?? 0,
         })
       }
       for (let x of comments) {
         if (x._id.toString() === req.userId) {
           const usernames = []
-          const firstImage = undefined
-          const lastDate = null
+          let firstImage = undefined
+          let lastDate = undefined
+
           for (let replies of x.replies) {
+            console.log(replies)
             if (replies._id.toString() !== req.userId) {
               if (!userData[replies._id.toString()]) {
                 userData[replies._id.toString()] = users.find(
                   (fd) => fd._id.toString() === replies._id.toString()
                 )
               }
+
               if (!firstImage) firstImage = userData[replies._id.toString()].img
-              usernames.push(userData[replies._id.toString()].username)
+              if (
+                !usernames.includes(userData[replies._id.toString()].username)
+              )
+                usernames.push(userData[replies._id.toString()].username)
               lastDate = replies.dateCreated
             }
           }
+          if (usernames.length > 0)
+            notif.push({
+              image: firstImage,
+              bookImg: bk.bookCoverImg,
+              what: 'comment',
+              bookId: bk._id,
 
-          notif.push({
-            image: firstImage,
-            bookImg: bk.bookCoverImg,
-            what: 'comment',
-            book: bk.bookName,
-            username: usernames,
-            date: lastDate,
-          })
+              book: bk.bookName,
+              username: usernames,
+              date: lastDate?.toString() ?? 0,
+            })
           break
         }
       }
@@ -326,8 +336,8 @@ const getNotifications = async (req, res) => {
         for (let comms of x.comments) {
           if (comms._id.toString() === req.userId) {
             const usernames = []
-            const firstImage = undefined
-            const lastDate = null
+            let firstImage = undefined
+            let lastDate = undefined
             for (let replies of comms.replies) {
               if (replies._id.toString() !== req.userId) {
                 if (!userData[replies._id.toString()]) {
@@ -337,20 +347,26 @@ const getNotifications = async (req, res) => {
                 }
                 if (!firstImage)
                   firstImage = userData[replies._id.toString()].img
-                usernames.push(userData[replies._id.toString()].username)
+
+                if (
+                  !usernames.includes(userData[replies._id.toString()].username)
+                )
+                  usernames.push(userData[replies._id.toString()].username)
                 lastDate = replies.dateCreated
               }
             }
-
-            notif.push({
-              image: firstImage,
-              bookImg: bk.bookCoverImg,
-              what: 'comment',
-              book: bk.bookName,
-              chapter: x.chapterNumber,
-              username: usernames,
-              date: lastDate,
-            })
+            if (usernames.length > 0)
+              notif.push({
+                image: firstImage,
+                bookImg: bk.bookCoverImg,
+                what: 'comment',
+                book: bk.bookName,
+                bookId: bk._id,
+                chapterId: x._id,
+                chapter: x.chapterNumber,
+                username: usernames,
+                date: lastDate?.toString() ?? 0,
+              })
             break
           }
         }
@@ -364,15 +380,19 @@ const getNotifications = async (req, res) => {
               username: [bk.bookAuthor],
               image: authorData[bk.bookAuthor].img,
               book: bk.bookName,
+              bookId: bk._id,
               chapter: x.chapterNumber,
               what: 'update',
-              date: updates.date,
+              date: updates.date?.toString() ?? 0,
             })
           }
         }
       }
     }
-    res.json(notif)
+
+    const sortedData = notif.sort((a, b) => new Date(b.date) - new Date(a.date))
+
+    res.json(sortedData)
   } catch (e) {
     return res
       .status(500)
