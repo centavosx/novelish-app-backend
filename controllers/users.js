@@ -396,6 +396,7 @@ const authenticated = async (req, res) => {
     const picture = decryptText(req.body.dataUser3)
 
     const name = decryptText(req.body.dataUser)
+
     let val = await Users.findOne(
       { email },
       { _id: 1, verified: 1, username: 1, email: 1, password: 1 }
@@ -427,11 +428,9 @@ const authenticated = async (req, res) => {
           verified: true,
         })
         val = await user.save()
-        userId = newUser._id
+        userId = val._id
       }
     }
-    const isPasswordValid = await bcrypt.compare(id, val.password)
-    if (!isPasswordValid) return res.status(403).json({ message: 'Invalid!' })
     if (!val.verified)
       return res.status(403).json({ message: 'This user is not yet verified!' })
     const newData = {
