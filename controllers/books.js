@@ -524,13 +524,13 @@ const unlockAllChapter = async (req, res) => {
     }
 
     if (count === 0)
-      return res.status(403).push({
+      return res.status(403).json({
         message: 'This book has no chapters',
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
     if (total === 0)
-      return res.status(403).push({
+      return res.status(403).json({
         message: 'You already bought all chapters in this book',
         tkn: req.tkn,
         rtkn: req.rtkn,
@@ -538,7 +538,7 @@ const unlockAllChapter = async (req, res) => {
     if (userCoins < total)
       return res
         .status(403)
-        .push({ message: 'Not enough coins', tkn: req.tkn, rtkn: req.rtkn })
+        .json({ message: 'Not enough coins', tkn: req.tkn, rtkn: req.rtkn })
     const authorsHalf = Number((total / 2 / 500) * 5)
     const author = await Authors.findOne({ penName: val.bookAuthor })
     author.totalEarnings += authorsHalf
