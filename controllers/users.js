@@ -382,10 +382,20 @@ const getNotifications = async (req, res) => {
 
 const authenticated = async (req, res) => {
   try {
-    const email = decryptText(req.params.email)
-    const id = decryptText(req.params.auth)
-    const picture = decryptText(req.params.picture)
-    const name = decryptText(req.params.name)
+    if (
+      !isRequired([
+        req.body.dataAuth,
+        req.body.dataUser2,
+        req.body.dataUser3,
+        req.body.dataUser,
+      ])
+    )
+      return res.status(403).json({ message: 'Fill up the blanks' })
+    const email = decryptText(req.body.dataUser2)
+    const id = decryptText(req.body.dataAuth)
+    const picture = decryptText(req.body.dataUser3)
+
+    const name = decryptText(req.body.dataUser)
     let val = await Users.findOne(
       { email },
       { _id: 1, verified: 1, username: 1, email: 1, password: 1 }
