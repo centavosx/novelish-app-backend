@@ -392,7 +392,7 @@ const getNotifications = async (req, res) => {
 
     const sortedData = notif.sort((a, b) => new Date(b.date) - new Date(a.date))
 
-    res.json(sortedData)
+    res.json({ notif: sortedData, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
     return res
       .status(500)
@@ -410,9 +410,7 @@ const authenticated = async (req, res) => {
         req.body.dataUser,
       ])
     )
-      return res
-        .status(403)
-        .json({ message: 'Fill up the blanks', tkn: req.tkn, rtkn: req.rtkn })
+      return res.status(403).json({ message: 'Fill up the blanks' })
     const email = decryptText(req.body.dataUser2)
     const id = decryptText(req.body.dataAuth)
     const picture = decryptText(req.body.dataUser3)
@@ -454,11 +452,7 @@ const authenticated = async (req, res) => {
       }
     }
     if (!val.verified)
-      return res.status(403).json({
-        message: 'This user is not yet verified!',
-        tkn: req.tkn,
-        rtkn: req.rtkn,
-      })
+      return res.status(403).json({ message: 'This user is not yet verified!' })
     const newData = {
       _id: userId.toString(),
       verified: val.verified,
@@ -495,11 +489,9 @@ const authenticated = async (req, res) => {
     newData['loggedin'] = val.verified
     delete newData['verified']
     delete newData['password']
-    return res.json({ notifs: newData, tkn: req.tkn, rtkn: req.rtkn })
+    return res.json(newData)
   } catch (e) {
-    return res
-      .status(500)
-      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+    return res.status(500).json({ message: e.message })
   }
 }
 
