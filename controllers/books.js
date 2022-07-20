@@ -471,6 +471,10 @@ const unlockChapter = async (req, res) => {
     val.chapters[0].unlockedBy.push({
       _id: Types.ObjectId(req.userId),
     })
+    const authorsHalf = Number((val.chapters[0].coinPrice / 2 / 500) * 5)
+    const author = await Authors.findOne({ penName: val.bookAuthor })
+    author.totalEarnings += authorsHalf
+    await author.save()
     await Users.updateOne(
       { _id: req.userId },
       { experience: req.userExp + 100 }
@@ -535,6 +539,10 @@ const unlockAllChapter = async (req, res) => {
       return res
         .status(403)
         .push({ message: 'Not enough coins', tkn: req.tkn, rtkn: req.rtkn })
+    const authorsHalf = Number((total / 2 / 500) * 5)
+    const author = await Authors.findOne({ penName: val.bookAuthor })
+    author.totalEarnings += authorsHalf
+    await author.save()
     user.coin -= total
     await user.save()
     await val.save()
