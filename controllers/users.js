@@ -259,6 +259,7 @@ const getNotifications = async (req, res) => {
     const authors = await Authors.find({})
     const dataOfUser = users.find((d) => d._id.toString() === req.userId)
     const notif = []
+
     //  {
     //   key: '1',
     //   image: jenny,
@@ -277,6 +278,7 @@ const getNotifications = async (req, res) => {
         followedAuthors[x.penName] = true
     }
     for (let bk of books) {
+      if (notif.length > 20) break
       const comments = bk.comments
       const chapters = bk.chapters
       const isPublished = bk.isPublished
@@ -285,22 +287,22 @@ const getNotifications = async (req, res) => {
         new Date(dataOfUser.dateVerified) < new Date(bk.publishDate)
       ) {
         notif.push({
+          key: notif.length + 1,
           image: authorData[bk.bookAuthor].img,
           bookImg: bk.bookCoverImg,
           what: 'publish',
           book: bk.bookName,
           bookId: bk._id,
-
           username: [bk.bookAuthor],
           date: bk.publishDate?.toString() ?? 0,
         })
       }
+
       for (let x of comments) {
         if (x._id.toString() === req.userId) {
           const usernames = []
           let firstImage = undefined
           let lastDate = undefined
-
           for (let replies of x.replies) {
             console.log(replies)
             if (replies._id.toString() !== req.userId) {
@@ -309,7 +311,6 @@ const getNotifications = async (req, res) => {
                   (fd) => fd._id.toString() === replies._id.toString()
                 )
               }
-
               if (!firstImage) firstImage = userData[replies._id.toString()].img
               if (
                 !usernames.includes(userData[replies._id.toString()].username)
@@ -320,11 +321,11 @@ const getNotifications = async (req, res) => {
           }
           if (usernames.length > 0)
             notif.push({
+              key: notif.length + 1,
               image: firstImage,
               bookImg: bk.bookCoverImg,
               what: 'comment',
               bookId: bk._id,
-
               book: bk.bookName,
               username: usernames,
               date: lastDate?.toString() ?? 0,
@@ -347,7 +348,6 @@ const getNotifications = async (req, res) => {
                 }
                 if (!firstImage)
                   firstImage = userData[replies._id.toString()].img
-
                 if (
                   !usernames.includes(userData[replies._id.toString()].username)
                 )
@@ -357,6 +357,7 @@ const getNotifications = async (req, res) => {
             }
             if (usernames.length > 0)
               notif.push({
+                key: notif.length + 1,
                 image: firstImage,
                 bookImg: bk.bookCoverImg,
                 what: 'comment',
@@ -367,16 +368,20 @@ const getNotifications = async (req, res) => {
                 username: usernames,
                 date: lastDate?.toString() ?? 0,
               })
+
             break
           }
         }
         if (followedAuthors[bk.bookAuthor]) {
-          for (let updates of x.updateHistory) {
+          for (let i = x.updateHistory.length - 1; i >= 0; i--) {
+            let updates = x.updateHistory[i]
             if (!authorData[bk.bookAuthor])
               authorData[bk.bookAuthor] = authors.find(
                 (ad) => ad.penName === bk.bookAuthor
               )
+
             notif.push({
+              key: notif.length + 1,
               username: [bk.bookAuthor],
               image: authorData[bk.bookAuthor].img,
               book: bk.bookName,
@@ -385,7 +390,9 @@ const getNotifications = async (req, res) => {
               what: 'update',
               date: updates.date?.toString() ?? 0,
             })
+            if (notif.length > 20) break
           }
+          if (notif.length > 20) break
         }
       }
     }
