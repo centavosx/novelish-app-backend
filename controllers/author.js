@@ -101,6 +101,8 @@ const getAuthorInformation = async (req, res) => {
       },
       follow: authorData.followers.id(req.userId) ? true : false,
       updated: books.slice(0, 3),
+      tkn: req.tkn,
+      rtkn: req.rtkn,
     })
   } catch (e) {
     return res
