@@ -137,9 +137,7 @@ const getBooks = async (req, res) => {
       { $sort: { likes: -1 } },
     ])
 
-    return res.json({
-      book: books.slice(req.query.start, req.query.end),
-    })
+    return res.json(books.slice(req.query.start, req.query.end))
   } catch (e) {
     return res.status(500).json({ message: e.message })
   }
