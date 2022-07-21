@@ -115,7 +115,7 @@ const insertProfilePicture = async (req, res) => {
       await UserImages.deleteOne({ _id: id })
     }
     const d = await Users.updateOne({ _id: req.userId }, { img: newFileUrl })
-    res.json({ ...d, tkn: req.tkn, rtkn: req.rtkn })
+    res.json({ success: true, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
     return res
       .status(500)

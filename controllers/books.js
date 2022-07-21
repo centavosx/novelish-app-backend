@@ -756,7 +756,7 @@ const search = async (req, res) => {
         : val[0] === '--'
         ? 'secondary'
         : 'title'
-    console.log(what)
+
     const value = what === 'secondary' ? val.substring(2) : val.substring(1)
     let valuesReturn = []
     if (
