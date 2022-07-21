@@ -182,8 +182,7 @@ const follow = async (req, res) => {
     }
     await author.save()
     return res.json({
-      author,
-      follow: author.followers.id(req.userId) ? true : false,
+      success: true,
       tkn: req.tkn,
       rtkn: req.rtkn,
     })
