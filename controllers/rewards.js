@@ -123,7 +123,7 @@ const getDailyLogin = async (req, res) => {
     }
     if (typeof user.attempt === 'number') user.attempt = []
     if (user.attempt?.length ?? 0 > 0) {
-      const d = new Date(d.attempt[0].date)
+      const d = new Date(user.attempt[0].date)
       d.setDate(d.getDate() + 1)
       if (
         dateNow.getDate() === d.getDate() &&
