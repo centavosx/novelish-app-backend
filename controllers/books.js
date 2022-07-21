@@ -740,6 +740,91 @@ const likeBook = async (req, res) => {
   }
 }
 
+const search = async (req, res) => {
+  try {
+    if (!isRequired([req.body.search, req.body.start]))
+      return res.status(403).json({ message: 'Nothing to search' })
+    const val = req.body.search
+    if (val.length < 1) return res.json([])
+    const what =
+      val[0] === '@'
+        ? 'author'
+        : val[0] === '#'
+        ? 'tag'
+        : val[0] === '-'
+        ? 'genre'
+        : val[0] === '--'
+        ? 'secondary'
+        : 'title'
+    console.log(what)
+    const value = what === 'secondary' ? val.substring(2) : val.substring(1)
+    let valuesReturn = []
+    if (
+      what === 'title' ||
+      what === 'genre' ||
+      what === 'secondary' ||
+      what === 'tag'
+    ) {
+      valuesReturn = await Books.aggregate([
+        {
+          $match:
+            what === 'title'
+              ? {
+                  $or: [
+                    { bookName: { $regex: value, $options: 'i' } },
+                    { bookAuthor: { $regex: value, $options: 'i' } },
+                  ],
+                }
+              : what === 'tag'
+              ? {
+                  'tags.tagName': { $regex: value, $options: 'i' },
+                }
+              : what === 'genre'
+              ? { mainGenre: { $regex: value, $options: 'i' } }
+              : { secondaryGenre: { $regex: value, $options: 'i' } },
+        },
+        {
+          $project: {
+            _id: 1,
+            bookName: 1,
+            bookAuthor: 1,
+            bookCoverImg: 1,
+            status: 1,
+            author: 1,
+            language: 1,
+            mainGenre: 1,
+            secondaryGenre: 1,
+            lastUpdated: 1,
+            description: 1,
+            publishDate: 1,
+            chapterNumber: { $size: '$chapters' },
+            views: { $size: '$viewedBy' },
+            likes: { $size: '$likedBy' },
+          },
+        },
+        { $sort: { likes: -1 } },
+      ])
+    } else {
+      valuesReturn = await Authors.find(
+        {
+          $or: [
+            { name: { $regex: value, $options: 'i' } },
+            { penName: { $regex: value, $options: 'i' } },
+          ],
+        },
+        { name: 1, img: 1, penName: 1, bio: 1, followers: 1, experience: 1 }
+      )
+      for (let x in valuesReturn) {
+        let num = await Books.find({ bookAuthor: valuesReturn[x].penName })
+        valuesReturn[x].experience = num.length
+      }
+    }
+    return res.json(valuesReturn.slice(req.body.start, req.body.start + 20))
+  } catch (e) {
+    return res.status(500).json({ message: e.message })
+  }
+}
+
 module.exports = {
   getAllBooks,
   updateBook,
@@ -755,4 +840,5 @@ module.exports = {
   viewBook,
   getBookChapters,
   unlockAllChapter,
+  search,
 }
