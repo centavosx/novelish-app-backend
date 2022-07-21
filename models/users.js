@@ -31,7 +31,12 @@ const dailySchema = new mongoose.Schema({
   date: {
     type: Date,
     required: true,
-    default: Date.now,
+  },
+})
+const attemptSchema = new mongoose.Schema({
+  date: {
+    type: Date,
+    required: true,
   },
 })
 
@@ -108,9 +113,8 @@ const userSchema = new mongoose.Schema({
     type: [dailySchema],
   },
   attempt: {
-    type: Number,
-    required: true,
-    default: 0,
+    type: [attemptSchema],
+    required: false,
   },
 })
 

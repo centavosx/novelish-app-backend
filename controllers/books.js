@@ -481,10 +481,7 @@ const unlockChapter = async (req, res) => {
 
     author.totalEarnings += authorsHalf
     await author.save()
-    await Users.updateOne(
-      { _id: req.userId },
-      { experience: req.userExp + 100 }
-    )
+
     await val.save()
     await Users.updateOne(
       { _id: req.userId },
@@ -597,7 +594,7 @@ const readChapter = async (req, res) => {
         tkn: req.tkn,
         rtkn: req.rtkn,
       })
-    console.log(val)
+
     if (
       val.chapters[0].unlockedBy.id(req.userId) === null &&
       val.chapters[0].coinPrice > 0
@@ -608,6 +605,10 @@ const readChapter = async (req, res) => {
         rtkn: req.rtkn,
       })
     if (val.chapters[0].readBy.id(req.userId) === null) {
+      await Users.updateOne(
+        { _id: req.userId },
+        { experience: req.userExp + 100 }
+      )
       val.chapters[0].readBy.push({
         _id: Types.ObjectId(req.userId),
       })

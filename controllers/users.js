@@ -453,13 +453,13 @@ const authenticated = async (req, res) => {
           email: email,
           password: hashedPassword,
           verified: true,
+          dateVerified: new Date(),
         })
         val = await user.save()
         userId = val._id
       }
     }
-    if (!val.verified)
-      return res.status(403).json({ message: 'This user is not yet verified!' })
+    if (!val.verified) val.verified = true
     const newData = {
       _id: userId.toString(),
       verified: val.verified,
