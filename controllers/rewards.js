@@ -7,12 +7,12 @@ const dailyLogin = async (req, res) => {
     const user = await Users.findOne({ _id: req.userId })
     if (!user) return res.status(403).json({ message: 'User not found' })
     let dateNow = new Date()
-    if (user.dailyLogin?.length ?? 0 < 7) {
+    if ((user.dailyLogin?.length ?? 0) < 7) {
       user.dailyLogin = []
       for (let i = 0; i < 7; i++) {
         user.dailyLogin.push({
           loggedIn: false,
-          date: dateNow,
+          date: new Date(dateNow),
         })
         dateNow.setDate(dateNow.getDate() + 1)
         dateNow.setHours(23)
@@ -28,7 +28,7 @@ const dailyLogin = async (req, res) => {
       for (let i = 0; i < 7; i++) {
         user.dailyLogin.push({
           loggedIn: false,
-          date: dateNow,
+          date: new Date(dateNow),
         })
         dateNow.setDate(dateNow.getDate() + 1)
         dateNow.setHours(23)
@@ -91,12 +91,12 @@ const getDailyLogin = async (req, res) => {
     if (!user) return res.status(403).json({ message: 'User not found' })
     let dateNow = new Date()
 
-    if (user.dailyLogin?.length ?? 0 < 1) {
+    if ((user.dailyLogin?.length ?? 0) < 7) {
       user.dailyLogin = []
       for (let i = 0; i < 7; i++) {
         user.dailyLogin.push({
           loggedIn: false,
-          date: dateNow,
+          date: new Date(dateNow),
         })
         dateNow.setDate(dateNow.getDate() + 1)
         dateNow.setHours(23)
@@ -113,7 +113,7 @@ const getDailyLogin = async (req, res) => {
       for (let i = 0; i < 7; i++) {
         user.dailyLogin.push({
           loggedIn: false,
-          date: dateNow,
+          date: new Date(dateNow),
         })
         dateNow.setDate(dateNow.getDate() + 1)
         dateNow.setHours(23)
@@ -121,7 +121,9 @@ const getDailyLogin = async (req, res) => {
         dateNow.setSeconds(59)
       }
     }
+
     if (typeof user.attempt === 'number') user.attempt = []
+
     if (user.attempt?.length ?? 0 > 0) {
       const d = new Date(user.attempt[0].date)
       d.setDate(d.getDate() + 1)
