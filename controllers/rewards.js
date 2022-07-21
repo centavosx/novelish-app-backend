@@ -65,16 +65,7 @@ const dailyLogin = async (req, res) => {
       coin: user.coin,
       loggedIn,
       datesAttended: user.dailyLogin,
-      reward:
-        req.userExp < 100 * 25
-          ? 5
-          : req.userExp < 100 * 50
-          ? 6
-          : req.userExp < 100 * 100
-          ? 7
-          : req.userExp < 100 * 150
-          ? 8
-          : 10,
+      reward,
       tkn: req.tkn,
       rtkn: req.rtkn,
     })
@@ -138,6 +129,16 @@ const getDailyLogin = async (req, res) => {
     await user.save()
     let loggedIn = false
     dateNow = new Date()
+    const reward =
+      req.userExp < 100 * 25
+        ? 5
+        : req.userExp < 100 * 50
+        ? 6
+        : req.userExp < 100 * 100
+        ? 7
+        : req.userExp < 100 * 150
+        ? 8
+        : 10
     for (let x of user.dailyLogin) {
       const d = new Date(x.date)
       if (
@@ -153,6 +154,7 @@ const getDailyLogin = async (req, res) => {
       coin: user.coin,
       attempt: user.attempt.length,
       loggedIn,
+      reward,
       datesAttended: user.dailyLogin,
       tkn: req.tkn,
       rtkn: req.rtkn,
