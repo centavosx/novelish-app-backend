@@ -114,7 +114,7 @@ const insertProfilePicture = async (req, res) => {
       let id = splitImg[splitImg.length - 1]
       await UserImages.deleteOne({ _id: id })
     }
-    const d = await Users.updateOne({ _id: req.userId }, { img: newFileUrl })
+    await Users.updateOne({ _id: req.userId }, { img: newFileUrl })
     res.json({ success: true, tkn: req.tkn, rtkn: req.rtkn })
   } catch (e) {
     return res
