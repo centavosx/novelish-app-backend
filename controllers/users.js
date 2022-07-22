@@ -502,6 +502,42 @@ const authenticated = async (req, res) => {
   }
 }
 
+const changeInformation = async (req, res) => {
+  try {
+    if (!isRequired([req.body.data]))
+      return res.status(403).json({
+        message: 'Fill up all the blanks',
+        tkn: req.tkn,
+        rtkn: req.rtkn,
+      })
+    const user = req.body.data
+    let password = user.password
+    if (typeof user.password !== 'undefined') {
+      const salt = await bcrypt.genSalt(10)
+      password = await bcrypt.hash(user.password, salt)
+    }
+    if (user.username) {
+      const checkuser = await Users.findOne({ username: user.username })
+      if (checkuser)
+        return res.status(403).json({
+          message: 'This username already exist!',
+          tkn: req.tkn,
+          rtkn: req.rtkn,
+        })
+    }
+    const userData = await Users.findOne({ _id: req.userId })
+    if (password) userData.password = password
+    if (user.name) userData.name = user.name
+    if (user.username) userData.username = user.username
+    await userData.save()
+    return res.json({ success: true, tkn: req.tkn, rtkn: req.rtkn })
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ message: e.message, tkn: req.tkn, rtkn: req.rtkn })
+  }
+}
+
 module.exports = {
   addUser,
   loggedIn,
@@ -513,4 +549,5 @@ module.exports = {
   getUserProfile,
   getNotifications,
   authenticated,
+  changeInformation,
 }

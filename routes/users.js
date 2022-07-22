@@ -11,6 +11,7 @@ const {
   getUserProfile,
   getNotifications,
   authenticated,
+  changeInformation,
 } = require('../controllers/users')
 const { uploadImg } = require('../controllers/userImages')
 const {
@@ -37,4 +38,5 @@ router.get('/library', authenticate, getUserLibraries)
 router.patch('/library', authenticate, deleteUserLibraries)
 router.post('/', [checkEmail, checkUser], addUser)
 router.post('/authentication', authenticated)
+router.patch('/update/information', authenticated, changeInformation)
 module.exports = router
